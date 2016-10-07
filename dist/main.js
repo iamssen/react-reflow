@@ -292,7 +292,12 @@ webpackJsonp([2],{
 	    _react2.default.createElement(
 	      GroupContext,
 	      null,
-	      _react2.default.createElement(B, null)
+	      _react2.default.createElement(
+	        'div',
+	        { style: { border: '1px solid black', padding: '10px', marginTop: '10px' } },
+	        _react2.default.createElement(B, null),
+	        _react2.default.createElement(B, null)
+	      )
 	    )
 	  )
 		), document.querySelector('#app'));

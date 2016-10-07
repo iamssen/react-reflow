@@ -173,7 +173,10 @@ ReactDOM.render((
         <B/>
       </GroupContext>
       <GroupContext>
-        <B/>
+        <div style={{border: '1px solid black', padding: '10px', marginTop: '10px'}}>
+          <B/>
+          <B/>
+        </div>
       </GroupContext>
     </A>
   </TopContext>
