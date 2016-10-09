@@ -1,5 +1,5 @@
 module.exports = {
-  "dependencies": {
+  "peerDependencies": {
     "react": "^15.3.2",
   },
 }
