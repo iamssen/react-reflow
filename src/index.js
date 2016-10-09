@@ -18,11 +18,11 @@ class Context {
   /** @return {React.Component} */
   toComponent() {
     const contextTypes = {
-      __REFLOW_ENTER_PARENT__: React.PropTypes.func,
+      __REFLOW_PARENT_CONTEXT__: React.PropTypes.object,
     }
     
     const childContextTypes = {
-      __REFLOW_ENTER_PARENT__: React.PropTypes.func,
+      __REFLOW_PARENT_CONTEXT__: React.PropTypes.object,
       enterParent: React.PropTypes.func,
       dispatch: React.PropTypes.func,
     }
@@ -42,8 +42,8 @@ class Context {
       
       getChildContext() {
         const context = {
-          __REFLOW_ENTER_PARENT__: this.enterParent,
-          enterParent: this.context.__REFLOW_ENTER_PARENT__,
+          __REFLOW_PARENT_CONTEXT__: this,
+          enterParent: this.context && this.context.__REFLOW_PARENT_CONTEXT__ && this.context.__REFLOW_PARENT_CONTEXT__.enterParent,
           dispatch: this.dispatch,
         }
         
@@ -74,17 +74,28 @@ class Context {
             
             if (changed) this.setState(state);
           } else if (typeof action === 'function') {
-            this.dispatch(action(this.getChildContext()));
+            this.dispatch(action(this._getReflowContext()));
           }
         });
       }
       
       enterParent = fn => {
-        fn(this.getChildContext());
+        fn(this._getReflowContext());
       }
       
       render() {
         return this.props.children;
+      }
+      
+      _getReflowContext = () => {
+        if (this.context.__REFLOW_PARENT_CONTEXT__) {
+          return Object.assign(
+            {},
+            this.context.__REFLOW_PARENT_CONTEXT__._getReflowContext(),
+            this.getChildContext()
+          );
+        }
+        return this.getChildContext();
       }
       
       componentWillMount() {
@@ -98,7 +109,7 @@ class Context {
       }
       
       componentDidMount() {
-        this.unsubscribes = backgrounds.map(bg => bg(this.getChildContext()));
+        this.unsubscribes = backgrounds.map(bg => bg(this._getReflowContext()));
       }
       
       componentWillUnmount() {
