@@ -19,47 +19,42 @@ or
 
 # Basic Sample
 
-## Create Actions and Reducer
-
 ```
-// actions.js
-export const UPDATE_STATE = 'updateState';
+import React from 'react';
+import ReactDOM from 'react-dom';
+import { createContext } from 'react-reflow';
 
-export const updateState(newState) => {
+// ---------------------------------------------
+// actions
+// ---------------------------------------------
+const UPDATE_STATE = 'updateState';
+
+const updateState = (newState) => {
   return {
     type: UPDATE_STATE,
     state: newState,
   }
 }
-```
 
-```
-// reducer.js
-import { UPDATE_STATE } from './actions';
-
-export const state = (state = 'default value', action) => {
+// ---------------------------------------------
+// reducer
+// ---------------------------------------------
+const state = (state = 'default value', action) => {
   if (action.type === UPDATE_STATE) return action.state;
   return state;
 }
-```
 
-## Create Context
-```
-// context.js
-import { createContext } from 'react-reflow';
-import { state } from './reducer';
+// ---------------------------------------------
+// context
+// ---------------------------------------------
+const Context = createContext()
+                    .reducers({state}) // add reducer
+                    .toComponent()
 
-export const Context = createContext()
-                          .reducers({state})
-                          .toComponent()
-```
-
-## Create Components
-```
-// StateView.jsx
-import React from 'react';
-
-export class StateView extends React.Component {
+// ---------------------------------------------
+// components
+// ---------------------------------------------
+class StateView extends React.Component {
   static contextTypes = {
     state: React.PropTypes.string, // reducer `state`
   }
@@ -68,14 +63,8 @@ export class StateView extends React.Component {
     return <span>{this.context.state}</span>;
   }
 }
-```
 
-```
-// StateUpdater.jsx
-import React from 'react';
-import { updateState } from './actions';
-
-export class StateUpdater extends React.Component {
+class StateUpdater extends React.Component {
   static contextTypes = {
     dispatch: React.PropTypes.func,
   }
@@ -89,17 +78,10 @@ export class StateUpdater extends React.Component {
     this.context.dispatch(updateState(newState));
   }
 }
-```
 
-## Create App
-```
-// app.jsx
-import React from 'react';
-import ReactDOM from 'react-dom';
-import { Context } from './context';
-import { StateView } from './StateView';
-import { StateUpdater } from './StateUpdater';
-
+// ---------------------------------------------
+// app.js
+// ---------------------------------------------
 ReactDOM.render((
   <Context>
     <div>
@@ -114,6 +96,4 @@ ReactDOM.render((
 ), document.querySelector('#app'));
 ```
 
-## View this basic sample on Codepen
-
-<http://codepen.io/iamssen/pen/zKjQLY>
+View this basic sample on Codepen <http://codepen.io/iamssen/pen/zKjQLY>
