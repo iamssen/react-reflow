@@ -1,0 +1,16 @@
+/node_modules/
+/npm-debug.log
+/typings/
+
+/*.iml
+/.idea/
+
+/yarn.lock
+
+/config
+/src
+/test
+/.babelrc
+/.travis.yml
+/webpack.config.js
+
