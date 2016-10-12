@@ -80,7 +80,7 @@ class StateUpdater extends React.Component {
 }
 
 // ---------------------------------------------
-// app.js
+// app
 // ---------------------------------------------
 ReactDOM.render((
   <Context>
