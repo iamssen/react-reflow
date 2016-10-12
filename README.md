@@ -19,7 +19,7 @@ or
 
 # Basic Sample
 
-## Create Reducer
+## Create Actions and Reducer
 
 ```
 // actions.js
@@ -35,7 +35,7 @@ export const updateState(newState) => {
 
 ```
 // reducer.js
-import { UPDATE_STATE } from 'actions';
+import { UPDATE_STATE } from './actions';
 
 export const state = (state = 'default value', action) => {
   if (action.type === UPDATE_STATE) return action.state;
