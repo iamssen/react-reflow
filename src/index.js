@@ -56,9 +56,7 @@ class Context {
           enterParent: this.context && this.context.__REFLOW_PARENT_CONTEXT__ && this.context.__REFLOW_PARENT_CONTEXT__.enterParent,
           dispatch: this.dispatch,
         }
-        
         keys.forEach(k => context[k] = this.state[k]);
-        
         return context;
       }
       
