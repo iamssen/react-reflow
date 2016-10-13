@@ -109,6 +109,8 @@ class Context {
       }
       
       dispatch = action => {
+        if (!action) return;
+        
         if (isPlainObject(action)) {
           this.dispatchState(action);
         } else if (typeof action === 'function') {
