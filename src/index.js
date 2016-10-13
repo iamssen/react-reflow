@@ -3,14 +3,24 @@ import isPlainObject from 'lodash.isplainobject';
 
 class Context {
   /** @return {Context} */
+  install(...modules) {
+    modules.forEach(module => {
+      if (module.reducers) this.reducers(module.reducers);
+      if (module.backgrounds) this.backgrounds(...module.backgrounds);
+      if (module.constants) this.constants(module.constants);
+    });
+    return this;
+  }
+  
+  /** @return {Context} */
   reducers(reducers) {
     const keys = Object.keys(reducers);
     if (keys.length === 0) return this;
-    keys.forEach(name => {
-      if (typeof reducers[name] !== 'function') {
-        throw new Error(`${name} is not a function. reducer should be a function`);
+    keys.forEach(k => {
+      if (typeof reducers[k] !== 'function') {
+        throw new Error(`${k} is not a function. reducer should be a function`);
       }
-    })
+    });
     this._reducers = Object.assign(this._reducers || {}, reducers);
     return this;
   }
@@ -20,6 +30,13 @@ class Context {
     if (backgrounds.length === 0) return this;
     if (!this._backgrounds) this._backgrounds = new Set;
     backgrounds.filter(bg => !this._backgrounds.has(bg)).forEach(bg => this._backgrounds.add(bg));
+    return this;
+  }
+  
+  constants(constants) {
+    const keys = Object.keys(constants);
+    if (keys.length === 0) return this;
+    this._constants = Object.assign(this._constants || {}, constants);
     return this;
   }
   
@@ -43,6 +60,9 @@ class Context {
     /** @type {Function[]} */
     const backgrounds = (this._backgrounds && this._backgrounds.size > 0) ? Array.from(this._backgrounds) : [];
     
+    /** @type {any[]} */
+    const constants = this._constants || {};
+    
     // create context component class
     class Component extends React.Component {
       state = {};
@@ -57,7 +77,7 @@ class Context {
           dispatch: this.dispatch,
         }
         keys.forEach(k => context[k] = this.state[k]);
-        return context;
+        return Object.assign(context, constants);
       }
       
       static propTypes = {
@@ -67,7 +87,7 @@ class Context {
       dispatch = action => {
         Promise.resolve(action).then(action => {
           if (isPlainObject(action)) {
-            const state = {};
+            const context = {};
             let changed = false;
             
             keys.forEach(k => {
@@ -75,12 +95,12 @@ class Context {
               const next = reducers[k](current, action);
               if (current !== next) {
                 this.store[k] = next;
-                state[k] = next;
+                context[k] = next;
                 changed = true;
               }
             });
             
-            if (changed) this.setState(state);
+            if (changed) this.setState(Object.assign(context, constants));
           } else if (typeof action === 'function') {
             this.dispatch(action(this._getReflowContext()));
           }
