@@ -91,27 +91,31 @@ class Context {
         initialStates: React.PropTypes.object,
       }
       
-      dispatch = action => {
-        Promise.resolve(action).then(action => {
-          if (isPlainObject(action)) {
-            const context = {};
-            let changed = false;
-            
-            reducerKeys.forEach(k => {
-              const current = this.store[k];
-              const next = reducers[k](current, action);
-              if (current !== next) {
-                this.store[k] = next;
-                context[k] = next;
-                changed = true;
-              }
-            });
-            
-            if (changed) this.setState(context);
-          } else if (typeof action === 'function') {
-            this.dispatch(action(this._getReflowContext()));
+      dispatchState(action) {
+        const context = {};
+        let changed = false;
+        
+        reducerKeys.forEach(k => {
+          const current = this.store[k];
+          const next = reducers[k](current, action);
+          if (current !== next) {
+            this.store[k] = next;
+            context[k] = next;
+            changed = true;
           }
         });
+        
+        if (changed) this.setState(context);
+      }
+      
+      dispatch = action => {
+        if (isPlainObject(action)) {
+          this.dispatchState(action);
+        } else if (typeof action === 'function') {
+          this.dispatch(action(this._getReflowContext()));
+        } else if (typeof action.then === 'function') {
+          Promise.resolve(action).then(action => this.dispatch(action));
+        }
       }
       
       enterParent = fn => {
