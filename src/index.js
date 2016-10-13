@@ -3,12 +3,11 @@ import isPlainObject from 'lodash.isplainobject';
 
 class Context {
   /** @return {Context} */
-  install(...modules) {
-    modules.forEach(module => {
-      if (module.reducers) this.reducers(module.reducers);
-      if (module.backgrounds) this.backgrounds(...module.backgrounds);
-      if (module.constants) this.constants(module.constants);
-    });
+  install(module, map) {
+    const m = (typeof map === 'function') ? map(module) : module;
+    if (m.backgrounds) this.backgrounds(...m.backgrounds);
+    if (m.reducers) this.reducers(m.reducers);
+    if (m.constants) this.constants(m.constants);
     return this;
   }
   
@@ -52,20 +51,27 @@ class Context {
       dispatch: React.PropTypes.func,
     }
     
+    const initialState = {};
+    
     /** @type {string[]} */
-    const reducers = this._reducers;
-    const keys = (this._reducers) ? Object.keys(this._reducers) : [];
-    if (keys.length > 0) keys.forEach(k => childContextTypes[k] = React.PropTypes.any);
+    const reducers = this._reducers || {};
+    const reducerKeys = Object.keys(reducers);
+    if (reducerKeys.length > 0) reducerKeys.forEach(k => childContextTypes[k] = React.PropTypes.any);
     
     /** @type {Function[]} */
     const backgrounds = (this._backgrounds && this._backgrounds.size > 0) ? Array.from(this._backgrounds) : [];
     
     /** @type {any[]} */
     const constants = this._constants || {};
+    const constantKeys = Object.keys(constants);
+    if (constantKeys.length > 0) constantKeys.forEach(k => {
+      childContextTypes[k] = React.PropTypes.any;
+      initialState[k] = constants[k];
+    });
     
     // create context component class
     class Component extends React.Component {
-      state = {};
+      state = initialState;
       
       static contextTypes = contextTypes;
       static childContextTypes = childContextTypes;
@@ -76,8 +82,9 @@ class Context {
           enterParent: this.context && this.context.__REFLOW_PARENT_CONTEXT__ && this.context.__REFLOW_PARENT_CONTEXT__.enterParent,
           dispatch: this.dispatch,
         }
-        keys.forEach(k => context[k] = this.state[k]);
-        return Object.assign(context, constants);
+        reducerKeys.forEach(k => context[k] = this.state[k]);
+        constantKeys.forEach(k => context[k] = this.state[k]);
+        return context;
       }
       
       static propTypes = {
@@ -90,7 +97,7 @@ class Context {
             const context = {};
             let changed = false;
             
-            keys.forEach(k => {
+            reducerKeys.forEach(k => {
               const current = this.store[k];
               const next = reducers[k](current, action);
               if (current !== next) {
@@ -100,7 +107,7 @@ class Context {
               }
             });
             
-            if (changed) this.setState(Object.assign(context, constants));
+            if (changed) this.setState(context);
           } else if (typeof action === 'function') {
             this.dispatch(action(this._getReflowContext()));
           }

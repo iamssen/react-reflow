@@ -1,6 +1,6 @@
 {
   "name": "react-reflow",
-  "version": "0.2.0",
+  "version": "0.2.3",
   "description": "State container for React apps",
   "scripts": {
     "build": "npm run build:commonjs && npm run build:umd",
