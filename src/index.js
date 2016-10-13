@@ -3,11 +3,12 @@ import isPlainObject from 'lodash.isplainobject';
 
 class Context {
   /** @return {Context} */
-  install(module, map) {
-    const m = (typeof map === 'function') ? map(module) : module;
-    if (m.backgrounds) this.backgrounds(...m.backgrounds);
-    if (m.reducers) this.reducers(m.reducers);
-    if (m.constants) this.constants(m.constants);
+  install(...modules) {
+    modules.forEach(module => {
+      if (module.backgrounds) this.backgrounds(...module.backgrounds);
+      if (module.reducers) this.reducers(module.reducers);
+      if (module.constants) this.constants(module.constants);
+    });
     return this;
   }
   
@@ -32,10 +33,17 @@ class Context {
     return this;
   }
   
+  /** @return {Context} */
   constants(constants) {
     const keys = Object.keys(constants);
     if (keys.length === 0) return this;
     this._constants = Object.assign(this._constants || {}, constants);
+    return this;
+  }
+  
+  /** @return {Context} */
+  startup(fn) { // ({...}) => void
+    this._startup = fn;
     return this;
   }
   
@@ -68,6 +76,8 @@ class Context {
       childContextTypes[k] = React.PropTypes.any;
       initialState[k] = constants[k];
     });
+    
+    const startup = this._startup;
     
     // create context component class
     class Component extends React.Component {
@@ -150,7 +160,9 @@ class Context {
       }
       
       componentDidMount() {
-        this.unsubscribes = backgrounds.map(bg => bg(this._getReflowContext()));
+        const context = this._getReflowContext();
+        this.unsubscribes = backgrounds.map(background => background(context));
+        if (typeof startup === 'function') startup(context);
       }
       
       componentWillUnmount() {
