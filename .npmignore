@@ -6,11 +6,11 @@
 /.idea/
 
 /yarn.lock
+/.yarnclean
 
-/config
 /src
 /test
-/.babelrc
 /.travis.yml
+/tsconfig.json
 /webpack.config.js
 
