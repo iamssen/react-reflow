@@ -1,31 +1,33 @@
 {
   "name": "react-reflow",
-  "version": "0.2.6",
+  "version": "0.3.3",
   "description": "State container for React apps",
   "scripts": {
-    "build": "npm run build:commonjs && npm run build:umd",
-    "build:commonjs": "babel src/index.js --out-file lib/reflow.commonjs.js --presets es2015 --plugins transform-class-properties",
-    "build:umd": "webpack src/index.js lib/reflow.js",
-    "update-dependencies": "node config/dependencies.js",
-    "test": "jest"
+    "build": "rimraf lib && npm run build:commonjs && npm run build:umd",
+    "build:commonjs": "tsc --sourceMap true --declaration true",
+    "build:umd": "webpack src/index.ts lib/reflow.js",
+    "test": "jest test/*.test.tsx",
+    "jest": "jest test/dispatch.test.tsx"
   },
   "license": "MIT",
   "devDependencies": {
-    "webpack": "^1.13.2",
-    "babel-loader": "^6.2.5",
-    "jest": "^16.0.1",
-    "babel-jest": "^16.0.0",
-    "babel-preset-react": "^6.16.0",
-    "react": "^15.3.2",
-    "enzyme": "^2.4.1",
-    "react-dom": "^15.3.2",
-    "react-addons-test-utils": "^15.3.2",
-    "babel-plugin-transform-class-properties": "^6.16.0",
-    "babel-preset-es2015": "^6.16.0",
-    "babel-cli": "^6.16.0"
+    "@types/jest": "^16.0.3",
+    "@types/react": "^15.0.0",
+    "enzyme": "^2.7.0",
+    "jest": "^18.1.0",
+    "react": "^15.4.2",
+    "react-addons-test-utils": "^15.4.2",
+    "react-dom": "^15.4.2",
+    "rimraf": "^2.5.4",
+    "rxjs": "^5.0.3",
+    "ts-jest": "^18.0.1",
+    "ts-loader": "^1.3.3",
+    "typescript": "^2.1.5",
+    "webpack": "^1.14.0"
   },
-  "dependencies": {
-    "lodash.isplainobject": "^4.0.6"
+  "peerDependencies": {
+    "react": "^15.4.2",
+    "rxjs": "^5.0.3"
   },
   "repository": {
     "type": "git",
@@ -35,8 +37,17 @@
     "url": "https://github.com/iamssen/react-reflow/issues"
   },
   "homepage": "https://github.com/iamssen/react-reflow",
-  "main": "lib/reflow.commonjs.js",
-  "peerDependencies": {
-    "react": "^15.3.2"
+  "main": "lib/reflow.js",
+  "typings": "lib/commonjs/index.d.ts",
+  "jest": {
+    "transform": {
+      ".(ts|tsx)": "<rootDir>/node_modules/ts-jest/preprocessor.js"
+    },
+    "testRegex": "(/test/.*|(\\.|/)(test|spec))\\.(ts|tsx|js)?$",
+    "moduleFileExtensions": [
+      "ts",
+      "tsx",
+      "js"
+    ]
   }
 }
