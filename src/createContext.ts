@@ -11,27 +11,29 @@ export function createContext(config: ContextConfig): any {
   })
   
   class Context extends Component<{parentStore?: Store}, {}> {
+    static displayName = `Context({${Object.keys(config.state).join(',')}})`;
+    
     private store: Store;
     private permit: StorePermit;
     
     // to children components
     static childContextTypes = {
-      parentStore: PropTypes.object,
+      reflowStore: PropTypes.object,
     };
     
     getChildContext() {
       return {
-        parentStore: this.store,
+        reflowStore: this.store,
       };
     };
     
     // from parent component
     context: {
-      parentStore?: Store,
+      reflowStore?: Store,
     }
     
     static contextTypes = {
-      parentStore: PropTypes.object,
+      reflowStore: PropTypes.object,
     };
     
     render() {
@@ -54,7 +56,7 @@ export function createContext(config: ContextConfig): any {
     
     componentWillMount() {
       // FIXME props를 통해서 parentStore 수동 입력 (다른 frame과 혼합시에 도움이 될듯 싶다)
-      this.store = new Store(config, this.context.parentStore || this.props.parentStore);
+      this.store = new Store(config, this.props.parentStore || this.context.reflowStore);
       this.permit = this.store.access();
       
       const update = this.propsToUpdate({}, this.props);

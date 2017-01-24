@@ -3,12 +3,11 @@ import {Observable, Subscription, BehaviorSubject, Subject, Scheduler} from 'rxj
 // ---------------------------------------------
 // Types
 // ---------------------------------------------
-export type Teardown = () => void;
+export type Teardown = (() => void) | void;
 
 export type Update = {[name: string]: any};
-export type UpdatePromise = Promise<Update>;
 export type Operation = (tools: ActionTools) => Teardown;
-export type Action = Update | UpdatePromise | Operation;
+export type Action = Update | Promise<Update> | Operation;
 
 export type Observe = (...names: string[]) => Observable<{[name: string]: any}>;
 export type Dispatch = (action: Action) => Teardown;
@@ -22,7 +21,7 @@ export interface ActionTools {
 
 export type ContextConfig = {
   state: {[name: string]: ((observe: Observe) => Observable<any>) | any};
-  startup?: (tools: ActionTools) => Teardown | void;
+  startup?: (tools: ActionTools) => Teardown;
   tools?: {[name: string]: Tool};
 }
 
@@ -67,10 +66,10 @@ export class StorePermit {
   
   observe: Observe = (...names: string[]) => {
     if (this._destroyed || this.store.destroyed) return Observable.empty();
-    const subject = new BehaviorSubject<any>({});
+    const subject = new BehaviorSubject<any>(null);
     this._subjects.push(subject);
     this._subscriptions.push(this.store.observe(...names).subscribe(subject));
-    return subject.debounceTime(1, Scheduler.queue);
+    return subject.distinctUntilChanged().debounceTime(1, Scheduler.queue);
   }
   
   dispatch: Dispatch = (action: Action) => {
@@ -126,9 +125,10 @@ export class Store {
   }
   
   get tools(): ({[name: string]: (permit: StorePermit) => any}) {
+    const tools = this.config && this.config.tools ? this.config.tools : {};
     return this.parentStore
-      ? Object.assign({}, this.parentStore.tools, this.config.tools)
-      : this.config.tools || {};
+      ? Object.assign({}, this.parentStore.tools, tools)
+      : tools || {};
   }
   
   constructor(private config: ContextConfig, private parentStore?: Store) {

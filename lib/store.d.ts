@@ -1,11 +1,10 @@
 import { Observable } from 'rxjs';
-export declare type Teardown = () => void;
+export declare type Teardown = (() => void) | void;
 export declare type Update = {
     [name: string]: any;
 };
-export declare type UpdatePromise = Promise<Update>;
 export declare type Operation = (tools: ActionTools) => Teardown;
-export declare type Action = Update | UpdatePromise | Operation;
+export declare type Action = Update | Promise<Update> | Operation;
 export declare type Observe = (...names: string[]) => Observable<{
     [name: string]: any;
 }>;
@@ -19,7 +18,7 @@ export declare type ContextConfig = {
     state: {
         [name: string]: ((observe: Observe) => Observable<any>) | any;
     };
-    startup?: (tools: ActionTools) => Teardown | void;
+    startup?: (tools: ActionTools) => Teardown;
     tools?: {
         [name: string]: Tool;
     };

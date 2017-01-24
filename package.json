@@ -1,13 +1,13 @@
 {
   "name": "react-reflow",
-  "version": "0.3.3",
+  "version": "0.4.5",
   "description": "State container for React apps",
   "scripts": {
-    "build": "rimraf lib && npm run build:commonjs && npm run build:umd",
-    "build:commonjs": "tsc --sourceMap true --declaration true",
+    "build": "rimraf lib && npm run build:declaration && npm run build:umd",
+    "build:declaration": "tsc --project tsconfig.d.json && rimraf declaration-rest",
     "build:umd": "webpack src/index.ts lib/reflow.js",
-    "test": "jest test/*.test.tsx",
-    "jest": "jest test/dispatch.test.tsx"
+    "test": "jest test/*.tsx",
+    "jest": "jest --watch test/subscription.tsx"
   },
   "license": "MIT",
   "devDependencies": {
@@ -38,7 +38,7 @@
   },
   "homepage": "https://github.com/iamssen/react-reflow",
   "main": "lib/reflow.js",
-  "typings": "lib/commonjs/index.d.ts",
+  "typings": "lib/index.d.ts",
   "jest": {
     "transform": {
       ".(ts|tsx)": "<rootDir>/node_modules/ts-jest/preprocessor.js"
@@ -49,5 +49,6 @@
       "tsx",
       "js"
     ]
-  }
+  },
+  "dependencies": {}
 }

@@ -1,3 +1,3 @@
 export * from './store';
 export * from './createContext';
-export * from './connect';
+export * from './provide';

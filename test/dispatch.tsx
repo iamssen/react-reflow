@@ -1,5 +1,6 @@
 import {Store} from '../src/store';
 import {Observable} from 'rxjs';
+import {timer} from './utils/timer';
 
 describe('Dispatch', () => {
   const store = new Store({
@@ -43,7 +44,7 @@ describe('Dispatch', () => {
       })
     ).subscribe(() => done(), e => done.fail(e))
     
-    setTimeout(() => add.dispatch({a: 10, b: 20}), 10);
+    timer(10).then(() => add.dispatch({a: 10, b: 20}));
   })
   
   it('Dispatch from the parent can affect to children operation state', done => {
@@ -63,7 +64,7 @@ describe('Dispatch', () => {
       })
     ).subscribe(() => done(), e => done.fail(e))
     
-    setTimeout(() => permit.dispatch({a: 20, b: 30}), 10);
+    timer(10).then(() => add.dispatch({a: 20, b: 30}));
   })
   
   it('Dispatch from the parent can not affect to children state', done => {
@@ -75,7 +76,11 @@ describe('Dispatch', () => {
       done.fail()
     })
     
-    setTimeout(() => permit.dispatch({b: 100, c: 100}), 10);
-    setTimeout(done, 100);
+    timer(10)
+      .then(() => {
+        permit.dispatch({b: 100, c: 100})
+        return timer(100)
+      })
+      .then(done)
   })
 })

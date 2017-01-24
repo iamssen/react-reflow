@@ -7,6 +7,12 @@
       "dom",
       "es2015",
       "es2016"
-    ]
-  }
+    ],
+    "outDir" : "declaration-rest",
+    "declaration" : true,
+    "declarationDir" : "lib"
+  },
+  "files" : [
+    "src/index.ts"
+  ]
 }

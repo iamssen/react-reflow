@@ -21,6 +21,7 @@ const rxjsExternal = {
 }
 
 const config = {
+  devtool: 'source-map',
   externals: {
     react: reactExternal,
     reactDom: reactDomExternal,
@@ -45,8 +46,8 @@ const config = {
   },
   plugins: [
     {
-      apply: function apply(compiler) {
-        compiler.parser.plugin('expression global', function expressionGlobalPlugin() {
+      apply: compiler => {
+        compiler.parser.plugin('expression global', () => {
           this.state.module.addVariable('global', '(function() { return this; }()) || Function(\'return this\')()');
           return false;
         });
@@ -55,12 +56,7 @@ const config = {
     new webpack.optimize.OccurenceOrderPlugin(),
     new webpack.DefinePlugin({
       'process.env.NODE_ENV': JSON.stringify(env)
-    })
-  ]
-};
-
-if (env === 'production') {
-  config.plugins.push(
+    }),
     new webpack.optimize.UglifyJsPlugin({
       compressor: {
         pure_getters: true,
@@ -70,7 +66,7 @@ if (env === 'production') {
         warnings: false
       }
     })
-  );
-}
+  ]
+};
 
 module.exports = config;
