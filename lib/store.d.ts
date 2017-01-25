@@ -46,6 +46,7 @@ export declare class Store {
         [name: string]: (permit: StorePermit) => any;
     });
     constructor(config: ContextConfig, parentStore?: Store);
+    hasState: (name: string) => boolean;
     isPlainState: (name: string) => boolean;
     update: (name: string, value: any) => void;
     getObservable: (name: string) => Observable<any>;

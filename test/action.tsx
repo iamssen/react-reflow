@@ -74,13 +74,13 @@ describe('Action', () => {
       const timeout: number = setTimeout(() => {
         dispatch({a: 1000});
         done.fail();
-      }, 30);
+      }, 100);
       
       return () => clearTimeout(timeout);
     });
     
     setTimeout(cancel, 10);
-    setTimeout(done, 40);
+    setTimeout(done, 200);
   })
   
   it('It should be safe to cancel multiple times', done => {

@@ -51,7 +51,7 @@ describe('Dispatch', () => {
     Observable.combineLatest(
       add.observe('a', 'b', 'c').take(2).bufferCount(2).do(([prev, next]:{a: number, b: number, c: number}[]) => {
         expect(prev.a).not.toEqual(next.a);
-        expect(prev.b).toEqual(next.b);
+        expect(prev.b).not.toEqual(next.b);
         expect(prev.c).not.toEqual(next.c);
         expect(next.a + next.b).toEqual(next.c);
       }),

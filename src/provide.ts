@@ -5,8 +5,8 @@ import {Observe, StorePermit, Store, ActionTools} from './store';
 export function provide(mapState: (observe: Observe) => Observable<{[name: string]: any}>,
                         mapHandlers?: (tools: ActionTools) => {[name: string]: any}): (WrappedComponent: any) => any {
   return (WrappedComponent) => {
-    class Provider extends Component<any, {drops: any}> {
-      static displayName = `Provider(${WrappedComponent.displayName})`;
+    class Provided extends Component<any, {drops: any}> {
+      static displayName = `Provided(${WrappedComponent.displayName})`;
       
       private permit: StorePermit;
       private subscription: Subscription;
@@ -22,11 +22,13 @@ export function provide(mapState: (observe: Observe) => Observable<{[name: strin
       }
       
       state = {
-        drops: {},
+        drops: null,
       }
       
       render() {
-        return cloneElement(this.props.children as ReactElement<any>, this.state.drops);
+        return this.state.drops && this.dropState
+          ? cloneElement(this.props.children as ReactElement<any>, this.state.drops)
+          : null;
       }
       
       updateDrops(props) {
@@ -67,7 +69,7 @@ export function provide(mapState: (observe: Observe) => Observable<{[name: strin
     
     // return Stateless Component
     return (props) => {
-      return createElement(Provider, props, createElement(WrappedComponent));
+      return createElement(Provided, props, createElement(WrappedComponent));
     }
   }
 }

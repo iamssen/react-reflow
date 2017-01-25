@@ -140,13 +140,17 @@ export class Store {
     }
   }
   
+  hasState = (name: string): boolean => {
+    return this.config.state[name] !== undefined;
+  }
+  
   isPlainState = (name: string): boolean => {
     return typeof this.config.state[name] !== 'function';
   }
   
   update = (name: string, value: any) => {
-    if (this._observables.has(name)) {
-      const observable: Observable<any> = this._observables.get(name);
+    if (this.config.state[name] !== undefined) {
+      const observable: Observable<any> = this.getObservable(name);
       if (observable instanceof Subject) observable.next(value);
     } else if (this.parentStore) {
       this.parentStore.update(name, value);

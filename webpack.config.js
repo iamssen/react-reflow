@@ -57,15 +57,15 @@ const config = {
     new webpack.DefinePlugin({
       'process.env.NODE_ENV': JSON.stringify(env)
     }),
-    new webpack.optimize.UglifyJsPlugin({
-      compressor: {
-        pure_getters: true,
-        unsafe: true,
-        unsafe_comps: true,
-        screw_ie8: true,
-        warnings: false
-      }
-    })
+    // new webpack.optimize.UglifyJsPlugin({
+    //   compressor: {
+    //     pure_getters: true,
+    //     unsafe: true,
+    //     unsafe_comps: true,
+    //     screw_ie8: true,
+    //     warnings: false
+    //   }
+    // })
   ]
 };
 
