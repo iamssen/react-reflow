@@ -19,4 +19,5 @@ or
 
 # Samples
 
-- [Basic](http://www.webpackbin.com/Vk9P0qDwM)
+- [Skeleton Sample](http://www.webpackbin.com/4kY1GhwwM)
+- [Basic Sample](http://www.webpackbin.com/Vk9P0qDwM)
