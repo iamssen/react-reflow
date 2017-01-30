@@ -50,15 +50,16 @@ export class StorePermit {
     this._subscriptions = [];
   }
   
+  // TODO dispatch, observe를 patch 할 수 있도록 한다 (이미 가능한가???? ㅡ ㄴ ㅡ)
   get tools(): ActionTools {
     const tools: any = {
       observe: observe(this),
       dispatch: dispatch(this),
     }
     
-    const additionalTools = this.store.tools;
-    Object.keys(additionalTools).forEach(name => {
-      tools[name] = additionalTools[name](this);
+    const storeTools = this.store.tools;
+    Object.keys(storeTools).forEach(name => {
+      tools[name] = storeTools[name](this);
     });
     
     return tools;
