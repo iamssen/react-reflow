@@ -6,7 +6,7 @@ export function provide(mapState: (observe: Observe) => Observable<{[name: strin
                         mapHandlers?: (tools: ActionTools) => {[name: string]: any}): (WrappedComponent: any) => any {
   return (WrappedComponent) => {
     class Provided extends Component<any, {drops: any}> {
-      static displayName = `Provided(${WrappedComponent.displayName})`;
+      static displayName = `Provided(${WrappedComponent.displayName || WrappedComponent.name})`;
       
       private permit: StorePermit;
       private subscription: Subscription;
@@ -68,8 +68,8 @@ export function provide(mapState: (observe: Observe) => Observable<{[name: strin
     }
     
     // return Stateless Component
-    return (props) => {
-      return createElement(Provided, props, createElement(WrappedComponent));
-    }
+    const Provider = props => createElement(Provided, props, createElement(WrappedComponent));
+    Provider['displayName'] = 'Provider';
+    return Provider;
   }
 }

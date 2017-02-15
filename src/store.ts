@@ -11,6 +11,7 @@ export type Action = Update | Promise<Update> | Operation;
 
 export type Observe = (...names: string[]) => Observable<{[name: string]: any}>;
 export type Dispatch = (action: Action) => Teardown;
+export type GetState = (...names: string[]) => Promise<{[name: string]: any}>;
 
 export type Tool = (permit: StorePermit) => any;
 
@@ -32,6 +33,10 @@ const observe = (permit: StorePermit) => (...names: string[]) => {
   return permit.observe(...names);
 }
 
+const getState = (permit: StorePermit) => (...names: string[]) => {
+  return permit.getState(...names);
+}
+
 const dispatch = (permit: StorePermit) => (action: Action) => {
   return permit.dispatch(action);
 }
@@ -39,6 +44,10 @@ const dispatch = (permit: StorePermit) => (action: Action) => {
 // ---------------------------------------------
 // StorePermit
 // ---------------------------------------------
+function isPromise(obj) {
+  return !!obj && (typeof obj === 'object' || typeof obj === 'function') && typeof obj.then === 'function';
+}
+
 export class StorePermit {
   private _destroyed: boolean;
   private _subjects: BehaviorSubject<any>[];
@@ -50,11 +59,11 @@ export class StorePermit {
     this._subscriptions = [];
   }
   
-  // TODO dispatch, observe를 patch 할 수 있도록 한다 (이미 가능한가???? ㅡ ㄴ ㅡ)
   get tools(): ActionTools {
     const tools: any = {
       observe: observe(this),
       dispatch: dispatch(this),
+      getState: getState(this),
     }
     
     const storeTools = this.store.tools;
@@ -73,6 +82,11 @@ export class StorePermit {
     return subject.distinctUntilChanged().debounceTime(1, Scheduler.queue);
   }
   
+  getState: GetState = (...names: string[]) => {
+    if (this._destroyed || this.store.destroyed) return Promise.resolve({});
+    return this.store.observe(...names).first().toPromise();
+  }
+  
   dispatch: Dispatch = (action: Action) => {
     if (typeof action === 'function') { // case Operate
       let broken: boolean = false;
@@ -82,7 +96,7 @@ export class StorePermit {
         if (!broken && typeof teardown === 'function') teardown();
         broken = true;
       }
-    } else { // case Update, UpdatePromise
+    } else if (isPromise(action)) { // case UpdatePromise
       let broken: boolean = false;
       
       Promise.resolve(action).then(update => {
@@ -93,6 +107,15 @@ export class StorePermit {
       })
       
       return () => broken = true;
+    } else { // case Update
+      const update = action;
+      
+      Object.keys(update).forEach(name => {
+        if (this.store.isPlainState(name)) this.store.update(name, update[name]);
+      })
+      
+      return () => {
+      };
     }
   }
   
@@ -142,7 +165,9 @@ export class Store {
   }
   
   hasState = (name: string): boolean => {
-    return this.config.state[name] !== undefined;
+    // TODO [Test] parent store 까지 검색해서 결과를 알려준다
+    return this.config.state[name] !== undefined
+      || (this.parentStore && this.parentStore.hasState(name));
   }
   
   isPlainState = (name: string): boolean => {
@@ -159,18 +184,18 @@ export class Store {
   }
   
   getObservable = (name: string): Observable<any> => {
-    if (this.config.state[name] !== undefined) {
-      if (!this._observables.has(name)) {
+    if (!this.hasState(name)) throw new Error(`${name} is undefined state name...`);
+    
+    if (this.config.state[name] !== undefined) { // case state is in local
+      if (!this._observables.has(name)) { // not exists
         const observable: Observable<any> = this.isPlainState(name)
           ? new BehaviorSubject<any>(this.config.state[name])
           : this.config.state[name](this.observe);
         this._observables.set(name, observable);
       }
       return this._observables.get(name);
-    } else if (this.parentStore) {
+    } else if (this.parentStore) { // case state is in the parent
       return this.parentStore.getObservable(name);
-    } else {
-      return undefined;
     }
   }
   
