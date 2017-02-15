@@ -9,6 +9,9 @@ export declare type Observe = (...names: string[]) => Observable<{
     [name: string]: any;
 }>;
 export declare type Dispatch = (action: Action) => Teardown;
+export declare type GetState = (...names: string[]) => Promise<{
+    [name: string]: any;
+}>;
 export declare type Tool = (permit: StorePermit) => any;
 export interface ActionTools {
     dispatch: Dispatch;
@@ -31,6 +34,7 @@ export declare class StorePermit {
     constructor(store: Store);
     readonly tools: ActionTools;
     observe: Observe;
+    getState: GetState;
     dispatch: Dispatch;
     destroy(): void;
 }
