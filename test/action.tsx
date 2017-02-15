@@ -1,4 +1,4 @@
-import {Store, StorePermit, ActionTools} from '../src/store';
+import {Store, StorePermit} from '../src/store';
 import {timer} from './utils/timer';
 
 describe('Action', () => {
@@ -27,6 +27,8 @@ describe('Action', () => {
   // Permit destroy
   // TODO permit이 파괴되었을때 async update가 반영되지 않아야 한다 (무시해야 한다)
   
+  // TODO store에서 없는 state 이름을 호출할때 명시적인 에러가 나야한다
+  
   afterEach(() => {
     permit.observe('a', 'b', 'c').first().subscribe(({a, b, c}) => {
       expect(a).toEqual(1);
@@ -35,85 +37,112 @@ describe('Action', () => {
   })
   
   it('Action should update b and c', () => {
-    permit.observe('b', 'c').debounceTime(10).subscribe(({b, c}) => {
+    permit.dispatch({b: 100});
+    
+    return permit.observe('b', 'c').first().toPromise().then(({b, c}) => {
       expect(b).toEqual(100);
       expect(c).toEqual(101);
     })
-    permit.dispatch({b: 100});
   })
   
   it('Action should update b and c', () => {
-    permit.observe('b', 'c').debounceTime(10).subscribe(({b, c}) => {
-      expect(b).toEqual(200);
-      expect(c).toEqual(201);
-    })
     permit.dispatch(timer(10).then(() => ({b: 200})));
+    
+    return timer(20)
+      .then(() => permit.observe('b', 'c').first().toPromise())
+      .then(({b, c}) => {
+        expect(b).toEqual(200);
+        expect(c).toEqual(201);
+      })
   })
   
   it('Action should update b and c', () => {
-    permit.observe('b', 'c').debounceTime(10).subscribe(({b, c}) => {
-      expect(b).toEqual(300);
-      expect(c).toEqual(301);
-    })
     permit.dispatch(({dispatch}) => {
-      setTimeout(() => dispatch({b: 300}), 10);
-    })
-  })
-  
-  it('Action should be canceled', done => {
-    const cancel = permit.dispatch(timer(20).then(() => {
-      return {a: 1000};
-    }))
-    
-    setTimeout(cancel, 10);
-    setTimeout(done, 40);
-  })
-  
-  it('Action should be canceled', done => {
-    const cancel = permit.dispatch(({dispatch}:ActionTools) => {
-      const timeout: number = setTimeout(() => {
-        dispatch({a: 1000});
-        done.fail();
-      }, 100);
-      
-      return () => clearTimeout(timeout);
+      timer(10).then(() => {
+        dispatch({b: 300})
+      });
     });
     
-    setTimeout(cancel, 10);
-    setTimeout(done, 200);
+    return timer(20)
+      .then(() => permit.observe('b', 'c').first().toPromise())
+      .then(({b, c}) => {
+        expect(b).toEqual(300);
+        expect(c).toEqual(301);
+      })
   })
   
-  it('It should be safe to cancel multiple times', done => {
-    const teardown = permit.dispatch(timer(50).then(() => {
-      return {a: 1000};
-    }))
+  it('Action should be canceled', () => {
+    const cancel = permit.dispatch(timer(20).then(() => ({a: 1000})));
     
-    setTimeout(teardown, 10);
-    setTimeout(teardown, 20);
-    setTimeout(teardown, 30);
-    setTimeout(teardown, 40);
-    setTimeout(done, 100);
+    return timer(10)
+      .then(() => {
+        if (typeof cancel === 'function') cancel();
+        return permit.observe('a').first().toPromise();
+      })
+      .then(({a}) => expect(a).not.toEqual(1000));
   })
   
-  it('It should be safe to cancel multiple times', done => {
-    const teardown = permit.dispatch(({dispatch}:ActionTools) => {
-      let t: number = 0;
-      const timeout: number = setTimeout(() => {
-        dispatch({a: 1000});
-        done.fail();
-      }, 30);
-      
+  it('Action should be canceled', () => {
+    let canceled: boolean = false;
+    const cancel = permit.dispatch(() => {
+      return () => {
+        canceled = true;
+      }
+    });
+    
+    return timer(10).then(() => {
+      if (typeof cancel === 'function') cancel();
+      expect(canceled).toBeTruthy();
+    })
+  })
+  
+  it('It should be safe to cancel multiple times', () => {
+    const cancel = permit.dispatch(timer(50).then(() => ({a: 1000})))
+    
+    const doCancel = () => {
+      if (typeof cancel === 'function') cancel();
+      return timer(10);
+    }
+    
+    return timer(10)
+      .then(doCancel)
+      .then(doCancel)
+      .then(doCancel)
+      .then(doCancel)
+      .then(doCancel)
+      .then(doCancel)
+      .then(doCancel)
+      .then(doCancel)
+      .then(() => permit.observe('a').first().toPromise())
+      .then(({a}) => {
+        expect(a).not.toEqual(1000);
+      })
+  })
+  
+  it('It should be safe to cancel multiple times', () => {
+    let cancelCount: number = 0;
+    const cancel = permit.dispatch(() => {
       return () => { // teardown run only once
-        if (t > 1) done.fail();
-        clearTimeout(timeout);
-        t += 1;
+        cancelCount += 1;
       }
     })
     
-    setTimeout(teardown, 10);
-    setTimeout(teardown, 20);
-    setTimeout(teardown, 30);
-    setTimeout(teardown, 40);
-    setTimeout(done, 100);
+    const doCancel = () => {
+      if (typeof cancel === 'function') cancel();
+      return timer(10);
+    }
+    
+    return timer(10)
+      .then(doCancel)
+      .then(doCancel)
+      .then(doCancel)
+      .then(doCancel)
+      .then(doCancel)
+      .then(doCancel)
+      .then(doCancel)
+      .then(doCancel)
+      .then(() => {
+        expect(cancelCount).toEqual(1);
+      })
   })
 })
