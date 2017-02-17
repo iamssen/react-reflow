@@ -1,5 +1,5 @@
 import {Observable, Subscription} from 'rxjs';
-import {Component, PropTypes, cloneElement, ReactElement, createElement} from 'react';
+import {Component, PropTypes, createElement} from 'react';
 import {Observe, StorePermit, Store, ActionTools} from './store';
 
 export function provide(mapState: (observe: Observe) => Observable<{[name: string]: any}>,
@@ -27,7 +27,7 @@ export function provide(mapState: (observe: Observe) => Observable<{[name: strin
       
       render() {
         return this.state.drops && this.dropState
-          ? cloneElement(this.props.children as ReactElement<any>, this.state.drops)
+          ? createElement(WrappedComponent, this.state.drops)
           : null;
       }
       
@@ -39,16 +39,17 @@ export function provide(mapState: (observe: Observe) => Observable<{[name: strin
       
       componentWillMount() {
         this.permit = this.context.reflowStore.access();
-        this.dropHandlers = (typeof mapHandlers === 'function')
+        
+        this.dropHandlers = typeof mapHandlers === 'function'
           ? mapHandlers(this.permit.tools)
           : {};
         
-        if (typeof mapState !== 'function') throw new Error('...');
-        
-        this.subscription = mapState(this.permit.observe).subscribe(state => {
-          this.dropState = state;
-          this.updateDrops(this.props);
-        });
+        this.subscription = typeof mapState === 'function'
+          ? mapState(this.permit.observe).subscribe(state => {
+            this.dropState = state;
+            this.updateDrops(this.props);
+          })
+          : null;
       }
       
       componentWillReceiveProps(nextProps: any) {
@@ -67,9 +68,6 @@ export function provide(mapState: (observe: Observe) => Observable<{[name: strin
       }
     }
     
-    // return Stateless Component
-    const Provider = props => createElement(Provided, props, createElement(WrappedComponent));
-    Provider['displayName'] = 'Provider';
-    return Provider;
+    return Provided;
   }
 }
