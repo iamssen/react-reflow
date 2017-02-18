@@ -2,8 +2,12 @@ import {Observable, Subscription} from 'rxjs';
 import {Component, PropTypes, createElement} from 'react';
 import {Observe, StorePermit, Store, ActionTools} from './store';
 
-export function provide(mapState: (observe: Observe) => Observable<{[name: string]: any}>,
-                        mapHandlers?: (tools: ActionTools) => {[name: string]: any}): (WrappedComponent: any) => any {
+export type Provider = {
+  mapState?: (observe: Observe) => Observable<{[name: string]: any}>,
+  mapHandlers?: (tools: ActionTools) => {[name: string]: any},
+}
+
+export function provide(...providers: Provider[]): (WrappedComponent: any) => any {
   return (WrappedComponent) => {
     class Provided extends Component<any, {drops: any}> {
       static displayName = `Provided(${WrappedComponent.displayName || WrappedComponent.name})`;
@@ -40,15 +44,25 @@ export function provide(mapState: (observe: Observe) => Observable<{[name: strin
       componentWillMount() {
         this.permit = this.context.reflowStore.access();
         
-        this.dropHandlers = typeof mapHandlers === 'function'
-          ? mapHandlers(this.permit.tools)
-          : {};
+        const mapState = providers
+          .filter(provider => typeof provider.mapState === 'function')
+          .map(provider => provider.mapState(this.permit.observe))
+          .reverse();
         
-        this.subscription = typeof mapState === 'function'
-          ? mapState(this.permit.observe).subscribe(state => {
-            this.dropState = state;
-            this.updateDrops(this.props);
-          })
+        const mapHandler = providers
+          .filter(provider => typeof provider.mapHandlers === 'function')
+          .map(provider => provider.mapHandlers(this.permit.tools))
+          .reverse();
+        
+        this.dropHandlers = Object.assign({}, ...mapHandler);
+        
+        this.subscription = mapState.length > 0
+          ? Observable.combineLatest(...mapState)
+            .map(states => Object.assign({}, ...states))
+            .subscribe(state => {
+              this.dropState = state;
+              this.updateDrops(this.props);
+            })
           : null;
       }
       
@@ -69,5 +83,5 @@ export function provide(mapState: (observe: Observe) => Observable<{[name: strin
     }
     
     return Provided;
-  }
+  };
 }
