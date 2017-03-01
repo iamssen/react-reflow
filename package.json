@@ -1,13 +1,13 @@
 {
   "name": "react-reflow",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "State container for React apps",
   "scripts": {
     "build": "rimraf lib && npm run build:declaration && npm run build:umd",
     "build:declaration": "tsc --project tsconfig.d.json && rimraf declaration-rest",
     "build:umd": "webpack src/index.ts lib/reflow.js",
     "test": "jest test/*.tsx",
-    "jest": "jest test/getState.tsx"
+    "jest": "jest test/Store.tools.test.tsx"
   },
   "license": "MIT",
   "devDependencies": {

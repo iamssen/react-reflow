@@ -1,13 +1,18 @@
 import {Observable, Subscription} from 'rxjs';
 import {Component, PropTypes, createElement} from 'react';
-import {Observe, StorePermit, Store, ActionTools} from './store';
-
-export type Provider = {
-  mapState?: (observe: Observe) => Observable<{[name: string]: any}>,
-  mapHandlers?: (tools: ActionTools) => {[name: string]: any},
-}
+import {StorePermit, Store} from './store';
+import {Provider} from './types';
 
 export function provide(...providers: Provider[]): (WrappedComponent: any) => any {
+  // TODO Support deprecated provide api. This is going to remove in 0.6
+  if (typeof providers[0] === 'function' || typeof providers[1] === 'function') {
+    const legacyProvider: any = {};
+    if (typeof providers[0] === 'function') legacyProvider.mapState = providers[0];
+    if (typeof providers[1] === 'function') legacyProvider.mapHandlers = providers[1];
+    
+    providers = [legacyProvider];
+  }
+  
   return (WrappedComponent) => {
     class Provided extends Component<any, {drops: any}> {
       static displayName = `Provided(${WrappedComponent.displayName || WrappedComponent.name})`;
@@ -18,11 +23,11 @@ export function provide(...providers: Provider[]): (WrappedComponent: any) => an
       private dropState: {[name: string]: any};
       
       context: {
-        reflowStore?: Store,
+        _REFLOW_CONTEXT_?: Store,
       }
       
       static contextTypes = {
-        reflowStore: PropTypes.object,
+        _REFLOW_CONTEXT_: PropTypes.object,
       }
       
       state = {
@@ -42,7 +47,7 @@ export function provide(...providers: Provider[]): (WrappedComponent: any) => an
       }
       
       componentWillMount() {
-        this.permit = this.context.reflowStore.access();
+        this.permit = this.context._REFLOW_CONTEXT_.access();
         
         const mapState = providers
           .filter(provider => typeof provider.mapState === 'function')
@@ -79,6 +84,10 @@ export function provide(...providers: Provider[]): (WrappedComponent: any) => an
         
         this.dropHandlers = null;
         this.dropState = null;
+      }
+      
+      shouldComponentUpdate(nextProps, nextState): boolean {
+        return this.state.drops !== nextState.drops;
       }
     }
     

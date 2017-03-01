@@ -1,38 +1,16 @@
 import { Observable } from 'rxjs';
-export declare type Teardown = (() => void) | void;
-export declare type Update = {
-    [name: string]: any;
-};
-export declare type Operation = (tools: ActionTools) => Teardown;
-export declare type Action = Update | Promise<Update> | Operation;
-export declare type Observe = (...names: string[]) => Observable<{
-    [name: string]: any;
-}>;
-export declare type Dispatch = (action: Action) => Teardown;
-export declare type GetState = (...names: string[]) => Promise<{
-    [name: string]: any;
-}>;
-export declare type Tool = (permit: StorePermit) => any;
-export interface ActionTools {
-    dispatch: Dispatch;
-    observe: Observe;
-}
-export declare type ContextConfig = {
-    state: {
-        [name: string]: ((observe: Observe) => Observable<any>) | any;
-    };
-    startup?: (tools: ActionTools) => Teardown;
-    tools?: {
-        [name: string]: Tool;
-    };
-};
+import { Tools, ContextConfig, Observe, GetState, Dispatch } from './types';
 export declare class StorePermit {
     private store;
     private _destroyed;
     private _subjects;
     private _subscriptions;
     constructor(store: Store);
-    readonly tools: ActionTools;
+    readonly destroyed: boolean;
+    readonly tools: Tools;
+    hasParent: () => boolean;
+    hasState: (name: string) => boolean;
+    isPlainState: (name: string) => boolean;
     observe: Observe;
     getState: GetState;
     dispatch: Dispatch;
@@ -46,10 +24,11 @@ export declare class Store {
     private _startupPermit;
     private _startupTeardown;
     readonly destroyed: boolean;
-    readonly tools: ({
+    readonly tools: {
         [name: string]: (permit: StorePermit) => any;
-    });
+    };
     constructor(config: ContextConfig, parentStore?: Store);
+    hasParent: () => boolean;
     hasState: (name: string) => boolean;
     isPlainState: (name: string) => boolean;
     update: (name: string, value: any) => void;

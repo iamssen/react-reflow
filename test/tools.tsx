@@ -1,7 +1,8 @@
-import {Store, StorePermit, ActionTools} from '../src/store';
+import {Store, StorePermit} from '../src/store';
+import {Tools} from '../src/types';
 
-declare module '../src/store' {
-  interface ActionTools {
+declare module '../src/types' {
+  interface Tools {
     multiply: (a: number, b: number) => number,
     doublingB: () => void,
   }
@@ -31,7 +32,7 @@ describe('Action Tools', () => {
         multiply,
         doublingB,
       },
-      startup: ({observe, dispatch, multiply, doublingB}:ActionTools) => {
+      startup: ({observe, dispatch, multiply, doublingB}:Tools) => {
         expect(typeof observe).toEqual('function');
         expect(typeof dispatch).toEqual('function');
         expect(typeof multiply).toEqual('function');
@@ -44,7 +45,7 @@ describe('Action Tools', () => {
   })
   
   it('Get all action tools properly', () => {
-    permit.dispatch(({observe, dispatch, multiply, doublingB}:ActionTools) => {
+    permit.dispatch(({observe, dispatch, multiply, doublingB}:Tools) => {
       expect(typeof observe).toEqual('function');
       expect(typeof dispatch).toEqual('function');
       expect(typeof multiply).toEqual('function');
@@ -60,7 +61,7 @@ describe('Action Tools', () => {
       })
       .subscribe(() => done(), e => done.fail(e));
     
-    permit.dispatch(({doublingB}:ActionTools) => {
+    permit.dispatch(({doublingB}:Tools) => {
       doublingB();
     });
   })
@@ -85,7 +86,7 @@ describe('Action Tools Hierarchy', () => {
   const permit: StorePermit = child.access()
   
   it('Get action tools from the parent context', () => {
-    permit.dispatch(({multiply}:ActionTools) => {
+    permit.dispatch(({multiply}:Tools) => {
       expect(typeof multiply).toEqual('function');
       expect(multiply(2, 3)).toEqual(6);
     })

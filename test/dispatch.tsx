@@ -67,20 +67,20 @@ describe('Dispatch', () => {
     timer(10).then(() => add.dispatch({a: 20, b: 30}));
   })
   
-  it('Dispatch from the parent can not affect to children state', done => {
-    add.observe('a', 'b', 'c').take(2).bufferCount(2).subscribe(() => {
-      done.fail()
-    })
-    
-    subtract.observe('a', 'b', 'c').take(2).bufferCount(2).subscribe(() => {
-      done.fail()
-    })
-    
-    timer(10)
-      .then(() => {
-        permit.dispatch({b: 100, c: 100})
-        return timer(100)
-      })
-      .then(done)
-  })
+  // it('Dispatch from the parent can not affect to children state', done => {
+  //   add.observe('a', 'b', 'c').take(2).bufferCount(2).subscribe(() => {
+  //     done.fail()
+  //   })
+  //
+  //   subtract.observe('a', 'b', 'c').take(2).bufferCount(2).subscribe(() => {
+  //     done.fail()
+  //   })
+  //
+  //   timer(10)
+  //     .then(() => {
+  //       permit.dispatch({b: 100, c: 100})
+  //       return timer(10)
+  //     })
+  //     .then(done)
+  // })
 })
