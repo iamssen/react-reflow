@@ -1,5 +1,6 @@
 import {Component, PropTypes, ReactElement, Children, createElement} from 'react';
-import {Store, StorePermit} from './store';
+import {Store} from './store';
+import {StorePermit} from './permit';
 import {ContextConfig, Dispatch, Action, Observe, Teardown, GetState} from './types';
 
 const unavailableNames: string[] = ['children', 'parentStore'];
@@ -52,7 +53,7 @@ export function createContext(config: ContextConfig): any {
         : this.props.children as ReactElement<any>;
     }
     
-    receiveProps(prevProps, nextProps) {
+    private receiveProps(prevProps, nextProps) {
       Object.keys(nextProps).forEach(name => {
         if (typeof this.contextProps[name] === 'function' && prevProps[name] !== nextProps[name]) {
           this.contextProps[name](prevProps[name], nextProps[name]);
@@ -101,8 +102,19 @@ export function createContext(config: ContextConfig): any {
       return this.props;
     }
     
+    // ---------------------------------------------
+    // StorePermit API
+    // ---------------------------------------------
     hasParent = (): boolean => {
       return this.permit.hasParent();
+    }
+    
+    hasState = (name: string): boolean => {
+      return this.permit.hasState(name);
+    }
+    
+    isPlainState = (name: string): boolean => {
+      return this.permit.isPlainState(name);
     }
     
     observe: Observe = (...names: string[]) => {

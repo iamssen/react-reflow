@@ -1,146 +1,7 @@
-import {Observable, Subscription, BehaviorSubject, Subject, Scheduler} from 'rxjs';
-import {Action, Tools, Teardown, ContextConfig, Observe, GetState, Dispatch} from './types';
+import {Observable, BehaviorSubject, Subject} from 'rxjs';
+import {Teardown, StoreConfig} from './types';
+import {StorePermit} from './permit';
 
-// ---------------------------------------------
-// Tools
-// ---------------------------------------------
-const observe = (permit: StorePermit) => (...names: string[]) => {
-  return permit.observe(...names);
-}
-
-const getState = (permit: StorePermit) => (...names: string[]) => {
-  return permit.getState(...names);
-}
-
-const dispatch = (permit: StorePermit) => (action: Action) => {
-  return permit.dispatch(action);
-}
-
-// ---------------------------------------------
-// StorePermit
-// ---------------------------------------------
-function isPromise(obj) {
-  return !!obj && (typeof obj === 'object' || typeof obj === 'function') && typeof obj.then === 'function';
-}
-
-export class StorePermit {
-  private _destroyed: boolean;
-  private _subjects: BehaviorSubject<any>[];
-  private _subscriptions: Subscription[];
-  
-  constructor(private store: Store) {
-    this._destroyed = false;
-    this._subjects = [];
-    this._subscriptions = [];
-  }
-  
-  get destroyed(): boolean {
-    return this._destroyed
-      || !this.store
-      || this.store.destroyed;
-  }
-  
-  get tools(): Tools {
-    const tools: any = {
-      observe: observe(this),
-      dispatch: dispatch(this),
-      getState: getState(this),
-    }
-    
-    const storeTools = this.store.tools;
-    Object.keys(storeTools).forEach(name => {
-      tools[name] = storeTools[name](this);
-    });
-    
-    return tools;
-  }
-  
-  hasParent = (): boolean => {
-    return this.store
-      && !this.store.destroyed
-      && this.store.hasParent();
-  }
-  
-  hasState = (name: string): boolean => {
-    return this.store
-      && !this.store.destroyed
-      && this.store.hasState(name);
-  }
-  
-  isPlainState = (name: string): boolean => {
-    return this.store
-      && !this.store.destroyed
-      && this.store.isPlainState(name);
-  }
-  
-  observe: Observe = (...names: string[]) => {
-    if (this.destroyed) {
-      return Observable.empty();
-    }
-    const subject = new BehaviorSubject<any>(null);
-    this._subjects.push(subject);
-    this._subscriptions.push(this.store.observe(...names).subscribe(subject));
-    return subject.distinctUntilChanged().debounceTime(1, Scheduler.queue);
-  }
-  
-  getState: GetState = (...names: string[]) => {
-    if (this.destroyed) return Promise.resolve({});
-    return this.store.observe(...names).first().toPromise();
-  }
-  
-  dispatch: Dispatch = (action: Action) => {
-    if (typeof action === 'function') { // case Operate
-      let broken: boolean = false;
-      const teardown = action(this.tools);
-      
-      return () => {
-        if (!broken && typeof teardown === 'function') teardown();
-        broken = true;
-      }
-    } else if (isPromise(action)) { // case UpdatePromise
-      let broken: boolean = false;
-      
-      Promise.resolve(action).then(update => {
-        if (broken) return;
-        Object.keys(update).forEach(name => {
-          if (this.store.isPlainState(name)) this.store.update(name, update[name]);
-        })
-      })
-      
-      return () => broken = true;
-    } else { // case Update
-      const update = action;
-      
-      Object.keys(update).forEach(name => {
-        if (this.store.isPlainState(name)) this.store.update(name, update[name]);
-      })
-      
-      return () => {
-      };
-    }
-  }
-  
-  destroy() {
-    for (const subject of this._subjects) {
-      subject.complete();
-      subject.unsubscribe();
-    }
-    
-    for (const subscription of this._subscriptions) {
-      subscription.unsubscribe();
-    }
-    
-    this._subjects = null;
-    this._subscriptions = null;
-    this._destroyed = true;
-    
-    this.store = null;
-  }
-}
-
-// ---------------------------------------------
-// Store
-// ---------------------------------------------
 function excludeDefaultTools(tools: Object) {
   const keys = Object.keys(tools);
   if (keys.length === 0) return {};
@@ -165,13 +26,18 @@ export class Store {
   }
   
   get tools(): {[name: string]: (permit: StorePermit) => any} {
+    if (this._destroyed) {
+      console.error('Store 파괴 이후엔 tools가 호출되면 안됨. 찾아서 삭제할 것.');
+      return null;
+    }
+    
     const tools = this.config && this.config.tools ? this.config.tools : {};
     return this.parentStore
       ? Object.assign({}, excludeDefaultTools(this.parentStore.tools), tools)
       : tools || {};
   }
   
-  constructor(private config: ContextConfig, private parentStore?: Store) {
+  constructor(private config: StoreConfig, private parentStore?: Store) {
     this._observables = new Map<string, Observable<any>>();
     this._destroyed = false;
     if (typeof config.startup === 'function') {

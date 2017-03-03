@@ -1,5 +1,5 @@
 import {Observable} from 'rxjs';
-import {StorePermit} from './store';
+import {StorePermit} from './permit';
 
 export type Teardown = (() => void) | void;
 
@@ -22,25 +22,8 @@ export type Provider = {
   mapHandlers?: (tools: Tools) => {[name: string]: any},
 }
 
-export type ContextConfig = {
-  isolate?: boolean,
+export type StoreConfig = {
   state: {[name: string]: ((observe: Observe) => Observable<any>) | any};
-  
-  // receiveContextProps: ({dispatch}) => ({
-  //   a: (prevValue, nextValue) => dispatch(updateA(nextValue)),
-  //   b: (prevValue, nextValue) => dispatch(updateB(nextValue)),
-  // })
-  
-  receiveContextProps?: (tools: Tools) => {[name: string]: (prevValue, nextValue) => void};
-  // handleContextProps: ({observe}, getContextProps) => {
-  //   const subscription = observe('a').subscribe(({a}) => {
-  //     getContextProps().onChange(a)
-  //   })
-  //   return () => {
-  //     subscription.unsubscribe()
-  //   }
-  // }
-  handleContextProps?: (tools: Tools, getContextProps: () => any) => Teardown;
   
   // startup: ({dispatch, observe}) => {
   //   const stop = dispatch(updateValueWhenABChange());
@@ -62,4 +45,24 @@ export type ContextConfig = {
   //   console.log(sum(1, 2)) // 3
   // }
   tools?: {[name: string]: (permit: StorePermit) => any};
+}
+
+export type ContextConfig = StoreConfig & {
+  isolate?: boolean,
+  
+  // receiveContextProps: ({dispatch}) => ({
+  //   a: (prevValue, nextValue) => dispatch(updateA(nextValue)),
+  //   b: (prevValue, nextValue) => dispatch(updateB(nextValue)),
+  // })
+  receiveContextProps?: (tools: Tools) => {[name: string]: (prevValue, nextValue) => void};
+  
+  // handleContextProps: ({observe}, getContextProps) => {
+  //   const subscription = observe('a').subscribe(({a}) => {
+  //     getContextProps().onChange(a)
+  //   })
+  //   return () => {
+  //     subscription.unsubscribe()
+  //   }
+  // }
+  handleContextProps?: (tools: Tools, getContextProps: () => any) => Teardown;
 }

@@ -7,7 +7,7 @@
     "build:declaration": "tsc --project tsconfig.d.json && rimraf declaration-rest",
     "build:umd": "webpack src/index.ts lib/reflow.js",
     "test": "jest test/*.tsx",
-    "jest": "jest test/Store.tools.test.tsx"
+    "jest": "jest test/StorePermit.getState.test.tsx"
   },
   "license": "MIT",
   "devDependencies": {

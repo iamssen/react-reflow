@@ -6,19 +6,18 @@ describe('Store.tools', () => {
     const mockObserve = jest.fn();
     const mockGetState = jest.fn();
     
-    // TODO 이런식으로 tools에 대한 테스트도 진행
     const store = new Store({
       state: {a: 1},
       tools: {
-        dispatch: mockDispatch,
-        observe: mockObserve,
-        getState: mockGetState,
+        dispatch: permit => mockDispatch,
+        observe: permit => mockObserve,
+        getState: permit => mockGetState,
       }
     })
     
-    expect(store.tools.dispatch).toEqual(mockDispatch);
-    expect(store.tools.observe).toEqual(mockObserve);
-    expect(store.tools.getState).toEqual(mockGetState);
+    expect(store.tools.dispatch(null)).toEqual(mockDispatch);
+    expect(store.tools.observe(null)).toEqual(mockObserve);
+    expect(store.tools.getState(null)).toEqual(mockGetState);
     
     return new Promise(done => {
       new Store({
@@ -59,6 +58,8 @@ describe('Store.tools', () => {
       }
     })
     
+    expect(store.tools.foo(null)).toEqual(mock);
+    
     return new Promise(done => {
       new Store({
         state: {b: 2},
@@ -85,6 +86,10 @@ describe('Store.tools', () => {
         getState: permit => mockGetState,
       }
     })
+    
+    expect(store.tools.dispatch(null)).toEqual(mockDispatch);
+    expect(store.tools.observe(null)).toEqual(mockObserve);
+    expect(store.tools.getState(null)).toEqual(mockGetState);
     
     return new Promise(done => {
       new Store({
@@ -133,6 +138,14 @@ describe('Store.tools', () => {
       state: {g: 1},
     }, gen5);
     
+    expect(top.tools.foo(null)).toEqual(mock);
+    expect(gen1.tools.foo(null)).toEqual(mock);
+    expect(gen2.tools.foo(null)).toEqual(mock);
+    expect(gen3.tools.foo(null)).toEqual(mock);
+    expect(gen4.tools.foo(null)).toEqual(mock);
+    expect(gen5.tools.foo(null)).toEqual(mock);
+    expect(gen6.tools.foo(null)).toEqual(mock);
+    
     return new Promise(done => {
       new Store({
         state: {h: 2},
@@ -157,6 +170,8 @@ describe('Store.tools', () => {
       }
     })
     
+    expect(store.tools.foo(null)).toEqual(mock1);
+    
     return new Promise(done => {
       new Store({
         state: {b: 2},
@@ -173,5 +188,22 @@ describe('Store.tools', () => {
         }
       }, store);
     })
+  })
+  
+  it('Store가 파괴된 이후에는 null을 던지고, console.error()로 알려준다', () => {
+    const error = console.error;
+    console.error = jest.fn();
+    
+    const store = new Store({
+      state: {a: 1},
+    })
+    
+    store.destroy();
+    
+    expect(store.destroyed).toBeTruthy();
+    expect(store.tools).toBeNull();
+    expect(console.error).toHaveBeenCalled();
+  
+    console.error = error;
   })
 })

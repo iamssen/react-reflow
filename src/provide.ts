@@ -1,6 +1,7 @@
 import {Observable, Subscription} from 'rxjs';
 import {Component, PropTypes, createElement} from 'react';
-import {StorePermit, Store} from './store';
+import {Store} from './store';
+import {StorePermit} from './permit';
 import {Provider} from './types';
 
 export function provide(...providers: Provider[]): (WrappedComponent: any) => any {
