@@ -1,82 +1,126 @@
-import {Component, PropTypes, ReactElement} from 'react';
-import {ContextConfig, Store, StorePermit, Dispatch, Action, Observe} from './store';
-
-const blockNames = ['children', 'parentStore'];
+import {Component, PropTypes, ReactElement, Children, createElement} from 'react';
+import {Store} from './store';
+import {StorePermit} from './permit';
+import {ContextConfig, Dispatch, Action, Observe, Teardown, GetState} from './types';
+import {checkRestrictedPropNames} from './checkRestrictPropNames';
 
 export function createContext(config: ContextConfig): any {
-  blockNames.forEach(name => {
-    if (config.state[name] !== undefined) {
-      throw new Error(`Do not include "${name}" to "state"`);
-    }
-  })
+  checkRestrictedPropNames(config.state, (propName, restrictedPropNames) =>
+    `Do not inlcude ${propName} to "state", Restricted prop names are [${restrictedPropNames.join(', ')}]`
+  );
+  
+  const isolated: boolean = config.isolate === true;
+  const toChildrenContextTypes = {'_REFLOW_CONTEXT_': PropTypes.object};
+  const fromParentContextTypes = {};
+  
+  if (!isolated) {
+    toChildrenContextTypes['_REFLOW_PARENT_CONTEXT_'] = PropTypes.object;
+    fromParentContextTypes['_REFLOW_PARENT_CONTEXT_'] = PropTypes.object;
+  }
   
   class Context extends Component<{parentStore?: Store}, {}> {
     static displayName = `Context({${Object.keys(config.state).join(',')}})`;
     
     private store: Store;
     private permit: StorePermit;
+    private unhandleContextProps: Teardown;
+    private contextProps: {[name: string]: (prevValue, nextValue) => void};
     
     // to children components
-    static childContextTypes = {
-      reflowStore: PropTypes.object,
-    };
+    static childContextTypes = toChildrenContextTypes;
     
     getChildContext() {
-      return {
-        reflowStore: this.store,
-      };
+      const context = {'_REFLOW_CONTEXT_': this.store};
+      if (!isolated) context['_REFLOW_PARENT_CONTEXT_'] = this.store;
+      return context;
     };
     
     // from parent component
     context: {
-      reflowStore?: Store,
+      _REFLOW_CONTEXT_: Store,
+      _REFLOW_PARENT_CONTEXT_: Store,
     }
     
-    static contextTypes = {
-      reflowStore: PropTypes.object,
-    };
+    static contextTypes = fromParentContextTypes;
     
     render() {
-      return this.props.children as ReactElement<any>;
+      // FIXME Allow multiple children elements. However, multiple children are warapped in <div>
+      return Children.count(this.props.children) > 1
+        ? createElement('div', null, this.props.children) as ReactElement<any>
+        : this.props.children as ReactElement<any>;
     }
     
-    propsToUpdate(prevProps, nextProps): {[name: string]: any} {
-      const update = {};
-      let hasUpdate: boolean = false;
-      
-      for (const [name, value] of nextProps) {
-        if (this.store.isPlainState(name) && prevProps[name] !== nextProps[name]) {
-          update[name] = value;
-          hasUpdate = true;
+    private receiveProps(prevProps, nextProps) {
+      Object.keys(nextProps).forEach(name => {
+        if (typeof this.contextProps[name] === 'function' && prevProps[name] !== nextProps[name]) {
+          this.contextProps[name](prevProps[name], nextProps[name]);
         }
-      }
-      
-      return hasUpdate ? update : null;
+      });
     }
     
     componentWillMount() {
       // FIXME props를 통해서 parentStore 수동 입력 (다른 frame과 혼합시에 도움이 될듯 싶다)
-      this.store = new Store(config, this.props.parentStore || this.context.reflowStore);
+      this.store = new Store(config, this.props.parentStore || this.context._REFLOW_PARENT_CONTEXT_);
       this.permit = this.store.access();
       
-      const update = this.propsToUpdate({}, this.props);
-      if (update) this.permit.dispatch(update);
+      if (typeof config.handleContextProps === 'function') {
+        this.unhandleContextProps = config.handleContextProps(this.permit.tools, this.getContextProps);
+      }
+      
+      if (typeof config.receiveContextProps === 'function') {
+        this.contextProps = config.receiveContextProps(this.permit.tools);
+        checkRestrictedPropNames(this.contextProps, (propName, restrictedPropNames) =>
+          `Do not inlcude ${propName} to "receiveContextProps", Restricted prop names are [${restrictedPropNames.join(', ')}]`
+        );
+        this.receiveProps({}, this.props);
+      }
     }
     
     componentWillReceiveProps(nextProps): void {
-      const update = this.propsToUpdate(this.props, nextProps);
-      if (update) this.permit.dispatch(update);
+      if (this.contextProps) {
+        this.receiveProps(this.props, nextProps);
+      }
     }
     
     componentWillUnmount() {
+      if (typeof this.unhandleContextProps === 'function') this.unhandleContextProps();
+      this.unhandleContextProps = null;
+      
       this.permit.destroy();
       this.store.destroy();
       this.permit = null;
       this.store = null;
     }
     
+    shouldComponentUpdate(nextProps): boolean {
+      return this.props.children !== nextProps.children;
+    }
+    
+    private getContextProps = () => {
+      return this.props;
+    }
+    
+    // ---------------------------------------------
+    // StorePermit API
+    // ---------------------------------------------
+    hasParent = (): boolean => {
+      return this.permit.hasParent();
+    }
+    
+    hasState = (name: string): boolean => {
+      return this.permit.hasState(name);
+    }
+    
+    isPlainState = (name: string): boolean => {
+      return this.permit.isPlainState(name);
+    }
+    
     observe: Observe = (...names: string[]) => {
       return this.permit.observe(...names);
+    }
+    
+    getState: GetState = (...names: string[]) => {
+      return this.permit.getState(...names);
     }
     
     dispatch: Dispatch = (action: Action) => {

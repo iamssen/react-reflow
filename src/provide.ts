@@ -1,9 +1,19 @@
 import {Observable, Subscription} from 'rxjs';
 import {Component, PropTypes, createElement} from 'react';
-import {Observe, StorePermit, Store, ActionTools} from './store';
+import {Store} from './store';
+import {StorePermit} from './permit';
+import {Provider} from './types';
 
-export function provide(mapState: (observe: Observe) => Observable<{[name: string]: any}>,
-                        mapHandlers?: (tools: ActionTools) => {[name: string]: any}): (WrappedComponent: any) => any {
+export function provide(...providers: Provider[]): (WrappedComponent: any) => any {
+  // TODO Support deprecated provide api. This is going to remove in 0.6
+  if (typeof providers[0] === 'function' || typeof providers[1] === 'function') {
+    const legacyProvider: any = {};
+    if (typeof providers[0] === 'function') legacyProvider.mapState = providers[0];
+    if (typeof providers[1] === 'function') legacyProvider.mapHandlers = providers[1];
+    
+    providers = [legacyProvider];
+  }
+  
   return (WrappedComponent) => {
     class Provided extends Component<any, {drops: any}> {
       static displayName = `Provided(${WrappedComponent.displayName || WrappedComponent.name})`;
@@ -14,11 +24,11 @@ export function provide(mapState: (observe: Observe) => Observable<{[name: strin
       private dropState: {[name: string]: any};
       
       context: {
-        reflowStore?: Store,
+        _REFLOW_CONTEXT_?: Store,
       }
       
       static contextTypes = {
-        reflowStore: PropTypes.object,
+        _REFLOW_CONTEXT_: PropTypes.object,
       }
       
       state = {
@@ -38,17 +48,25 @@ export function provide(mapState: (observe: Observe) => Observable<{[name: strin
       }
       
       componentWillMount() {
-        this.permit = this.context.reflowStore.access();
+        this.permit = this.context._REFLOW_CONTEXT_.access();
         
-        this.dropHandlers = typeof mapHandlers === 'function'
-          ? mapHandlers(this.permit.tools)
-          : {};
+        const mapState = providers
+          .filter(provider => typeof provider.mapState === 'function')
+          .map(provider => provider.mapState(this.permit.observe));
         
-        this.subscription = typeof mapState === 'function'
-          ? mapState(this.permit.observe).subscribe(state => {
-            this.dropState = state;
-            this.updateDrops(this.props);
-          })
+        const mapHandler = providers
+          .filter(provider => typeof provider.mapHandlers === 'function')
+          .map(provider => provider.mapHandlers(this.permit.tools));
+        
+        this.dropHandlers = Object.assign({}, ...mapHandler);
+        
+        this.subscription = mapState.length > 0
+          ? Observable.combineLatest(...mapState)
+            .map(states => Object.assign({}, ...states))
+            .subscribe(state => {
+              this.dropState = state;
+              this.updateDrops(this.props);
+            })
           : null;
       }
       
@@ -66,8 +84,12 @@ export function provide(mapState: (observe: Observe) => Observable<{[name: strin
         this.dropHandlers = null;
         this.dropState = null;
       }
+      
+      shouldComponentUpdate(nextProps, nextState): boolean {
+        return this.state.drops !== nextState.drops;
+      }
     }
     
     return Provided;
-  }
+  };
 }

@@ -1,7 +1,2 @@
-import { Observable } from 'rxjs';
-import { Observe, ActionTools } from './store';
-export declare function provide(mapState: (observe: Observe) => Observable<{
-    [name: string]: any;
-}>, mapHandlers?: (tools: ActionTools) => {
-    [name: string]: any;
-}): (WrappedComponent: any) => any;
+import { Provider } from './types';
+export declare function provide(...providers: Provider[]): (WrappedComponent: any) => any;

@@ -1,43 +1,6 @@
 import { Observable } from 'rxjs';
-export declare type Teardown = (() => void) | void;
-export declare type Update = {
-    [name: string]: any;
-};
-export declare type Operation = (tools: ActionTools) => Teardown;
-export declare type Action = Update | Promise<Update> | Operation;
-export declare type Observe = (...names: string[]) => Observable<{
-    [name: string]: any;
-}>;
-export declare type Dispatch = (action: Action) => Teardown;
-export declare type GetState = (...names: string[]) => Promise<{
-    [name: string]: any;
-}>;
-export declare type Tool = (permit: StorePermit) => any;
-export interface ActionTools {
-    dispatch: Dispatch;
-    observe: Observe;
-}
-export declare type ContextConfig = {
-    state: {
-        [name: string]: ((observe: Observe) => Observable<any>) | any;
-    };
-    startup?: (tools: ActionTools) => Teardown;
-    tools?: {
-        [name: string]: Tool;
-    };
-};
-export declare class StorePermit {
-    private store;
-    private _destroyed;
-    private _subjects;
-    private _subscriptions;
-    constructor(store: Store);
-    readonly tools: ActionTools;
-    observe: Observe;
-    getState: GetState;
-    dispatch: Dispatch;
-    destroy(): void;
-}
+import { StoreConfig } from './types';
+import { StorePermit } from './permit';
 export declare class Store {
     private config;
     private parentStore;
@@ -46,10 +9,11 @@ export declare class Store {
     private _startupPermit;
     private _startupTeardown;
     readonly destroyed: boolean;
-    readonly tools: ({
+    readonly tools: {
         [name: string]: (permit: StorePermit) => any;
-    });
-    constructor(config: ContextConfig, parentStore?: Store);
+    };
+    constructor(config: StoreConfig, parentStore?: Store);
+    hasParent: () => boolean;
     hasState: (name: string) => boolean;
     isPlainState: (name: string) => boolean;
     update: (name: string, value: any) => void;
@@ -57,6 +21,6 @@ export declare class Store {
     observe: (...names: string[]) => Observable<{
         [name: string]: any;
     }>;
-    access(): StorePermit;
-    destroy(): void;
+    access: () => StorePermit;
+    destroy: () => void;
 }

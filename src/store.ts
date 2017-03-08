@@ -1,143 +1,21 @@
-import {Observable, Subscription, BehaviorSubject, Subject, Scheduler} from 'rxjs';
+import {Observable, BehaviorSubject, Subject} from 'rxjs';
+import {Teardown, StoreConfig} from './types';
+import {StorePermit} from './permit';
+import {checkRestrictedPropNames} from './checkRestrictPropNames';
 
-// ---------------------------------------------
-// Types
-// ---------------------------------------------
-export type Teardown = (() => void) | void;
-
-export type Update = {[name: string]: any};
-export type Operation = (tools: ActionTools) => Teardown;
-export type Action = Update | Promise<Update> | Operation;
-
-export type Observe = (...names: string[]) => Observable<{[name: string]: any}>;
-export type Dispatch = (action: Action) => Teardown;
-export type GetState = (...names: string[]) => Promise<{[name: string]: any}>;
-
-export type Tool = (permit: StorePermit) => any;
-
-export interface ActionTools {
-  dispatch: Dispatch;
-  observe: Observe;
-}
-
-export type ContextConfig = {
-  state: {[name: string]: ((observe: Observe) => Observable<any>) | any};
-  startup?: (tools: ActionTools) => Teardown;
-  tools?: {[name: string]: Tool};
-}
-
-// ---------------------------------------------
-// Tools
-// ---------------------------------------------
-const observe = (permit: StorePermit) => (...names: string[]) => {
-  return permit.observe(...names);
-}
-
-const getState = (permit: StorePermit) => (...names: string[]) => {
-  return permit.getState(...names);
-}
-
-const dispatch = (permit: StorePermit) => (action: Action) => {
-  return permit.dispatch(action);
-}
-
-// ---------------------------------------------
-// StorePermit
-// ---------------------------------------------
-function isPromise(obj) {
-  return !!obj && (typeof obj === 'object' || typeof obj === 'function') && typeof obj.then === 'function';
-}
-
-export class StorePermit {
-  private _destroyed: boolean;
-  private _subjects: BehaviorSubject<any>[];
-  private _subscriptions: Subscription[];
+function excludeDefaultTools(tools: Object) {
+  const keys = Object.keys(tools);
+  if (keys.length === 0) return {};
   
-  constructor(private store: Store) {
-    this._destroyed = false;
-    this._subjects = [];
-    this._subscriptions = [];
-  }
-  
-  get tools(): ActionTools {
-    const tools: any = {
-      observe: observe(this),
-      dispatch: dispatch(this),
-      getState: getState(this),
-    }
-    
-    const storeTools = this.store.tools;
-    Object.keys(storeTools).forEach(name => {
-      tools[name] = storeTools[name](this);
-    });
-    
-    return tools;
-  }
-  
-  observe: Observe = (...names: string[]) => {
-    if (this._destroyed || this.store.destroyed) return Observable.empty();
-    const subject = new BehaviorSubject<any>(null);
-    this._subjects.push(subject);
-    this._subscriptions.push(this.store.observe(...names).subscribe(subject));
-    return subject.distinctUntilChanged().debounceTime(1, Scheduler.queue);
-  }
-  
-  getState: GetState = (...names: string[]) => {
-    if (this._destroyed || this.store.destroyed) return Promise.resolve({});
-    return this.store.observe(...names).first().toPromise();
-  }
-  
-  dispatch: Dispatch = (action: Action) => {
-    if (typeof action === 'function') { // case Operate
-      let broken: boolean = false;
-      const teardown = action(this.tools);
-      
-      return () => {
-        if (!broken && typeof teardown === 'function') teardown();
-        broken = true;
-      }
-    } else if (isPromise(action)) { // case UpdatePromise
-      let broken: boolean = false;
-      
-      Promise.resolve(action).then(update => {
-        if (broken) return;
-        Object.keys(update).forEach(name => {
-          if (this.store.isPlainState(name)) this.store.update(name, update[name]);
-        })
-      })
-      
-      return () => broken = true;
-    } else { // case Update
-      const update = action;
-      
-      Object.keys(update).forEach(name => {
-        if (this.store.isPlainState(name)) this.store.update(name, update[name]);
-      })
-      
-      return () => {
-      };
-    }
-  }
-  
-  destroy() {
-    for (const subject of this._subjects) {
-      subject.complete();
-      subject.unsubscribe();
-    }
-    
-    for (const subscription of this._subscriptions) {
-      subscription.unsubscribe();
-    }
-    
-    this._subjects = null;
-    this._subscriptions = null;
-    this._destroyed = true;
-  }
+  const defaultTools = ['dispatch', 'observe', 'getState'];
+  return keys
+    .filter(key => defaultTools.indexOf(key) === -1)
+    .reduce((filtertedTools, key) => {
+      filtertedTools[key] = tools[key];
+      return filtertedTools;
+    }, {});
 }
 
-// ---------------------------------------------
-// Store
-// ---------------------------------------------
 export class Store {
   private _observables: Map<string, Observable<any>>;
   private _destroyed: boolean;
@@ -148,14 +26,23 @@ export class Store {
     return this._destroyed;
   }
   
-  get tools(): ({[name: string]: (permit: StorePermit) => any}) {
+  get tools(): {[name: string]: (permit: StorePermit) => any} {
+    if (this._destroyed) {
+      console.error('Store 파괴 이후엔 tools가 호출되면 안됨. 찾아서 삭제할 것.');
+      return null;
+    }
+    
     const tools = this.config && this.config.tools ? this.config.tools : {};
     return this.parentStore
-      ? Object.assign({}, this.parentStore.tools, tools)
+      ? Object.assign({}, excludeDefaultTools(this.parentStore.tools), tools)
       : tools || {};
   }
   
-  constructor(private config: ContextConfig, private parentStore?: Store) {
+  constructor(private config: StoreConfig, private parentStore?: Store) {
+    checkRestrictedPropNames(config.state, (propName, restrictedPropNames) =>
+      `Do not inlcude ${propName} to "state", Restricted prop names are [${restrictedPropNames.join(', ')}]`
+    );
+    
     this._observables = new Map<string, Observable<any>>();
     this._destroyed = false;
     if (typeof config.startup === 'function') {
@@ -164,17 +51,69 @@ export class Store {
     }
   }
   
+  hasParent = (): boolean => {
+    if (this._destroyed) {
+      console.error('Store 파괴 이후엔 hasParent()가 호출되면 안됨. 찾아서 삭제할 것.');
+      return false;
+    }
+    
+    if (this.parentStore) {
+      if (!this.parentStore.destroyed) {
+        return true;
+      } else {
+        console.error(
+          'The parent store has already been destroyed.\n' +
+          'This hasParent() should not be executed.\n' +
+          'Do not let this hasParent() execute.'
+        );
+        return false;
+      }
+    } else {
+      return false;
+    }
+  }
+  
   hasState = (name: string): boolean => {
-    // TODO [Test] parent store 까지 검색해서 결과를 알려준다
+    if (this._destroyed) {
+      console.error('Store 파괴 이후엔 hasState()가 호출되면 안됨. 찾아서 삭제할 것.');
+      return false;
+    }
+    
     return this.config.state[name] !== undefined
       || (this.parentStore && this.parentStore.hasState(name));
   }
   
   isPlainState = (name: string): boolean => {
-    return typeof this.config.state[name] !== 'function';
+    if (this._destroyed) {
+      console.error('Store 파괴 이후엔 isPlainState()가 호출되면 안됨. 찾아서 삭제할 것.');
+      return false;
+    }
+    
+    if (!this.hasState(name)) {
+      throw new Error(`"${name}"은 찾을 수 없는 state name이다.`);
+    }
+    
+    if (this.config.state[name] !== undefined) {
+      return typeof this.config.state[name] !== 'function';
+    } else if (this.parentStore) {
+      return this.parentStore.isPlainState(name);
+    }
   }
   
   update = (name: string, value: any) => {
+    if (this._destroyed) {
+      console.error('Store 파괴 이후에는 update()가 호출되면 안됨. 찾아서 삭제할 것.');
+      return;
+    }
+    
+    if (!this.hasState(name)) {
+      throw new Error(`"${name}"은 찾을 수 없는 state name이다.`);
+    }
+    
+    if (!this.isPlainState(name)) {
+      throw new Error(`"${name}"은 Plain State가 아니기 때문에 update 할 수 없다.`);
+    }
+    
     if (this.config.state[name] !== undefined) {
       const observable: Observable<any> = this.getObservable(name);
       if (observable instanceof Subject) observable.next(value);
@@ -184,7 +123,14 @@ export class Store {
   }
   
   getObservable = (name: string): Observable<any> => {
-    if (!this.hasState(name)) throw new Error(`${name} is undefined state name...`);
+    if (this._destroyed) {
+      console.error('Store 파괴 이후 getObservable()이 호출되면 안됨. 찾아서 삭제할 것.');
+      return Observable.empty();
+    }
+    
+    if (!this.hasState(name)) {
+      throw new Error(`"${name}" is a state name that can not be found.`);
+    }
     
     if (this.config.state[name] !== undefined) { // case state is in local
       if (!this._observables.has(name)) { // not exists
@@ -200,6 +146,11 @@ export class Store {
   }
   
   observe = (...names: string[]): Observable<{[name: string]: any}> => {
+    if (this._destroyed) {
+      console.error('Store 파괴 이후 observe()는 호출되면 안됨. 찾아서 삭제할 것.');
+      return Observable.empty();
+    }
+    
     if (names.length === 1) {
       return this.getObservable(names[0])
         .map(value => {
@@ -220,11 +171,16 @@ export class Store {
     }
   }
   
-  access(): StorePermit {
-    return new StorePermit(this);
+  access = (): StorePermit => {
+    return !this._destroyed ? new StorePermit(this) : null;
   }
   
-  destroy() {
+  destroy = () => {
+    if (this._destroyed) {
+      console.error('Store.destroy() can not be executed multiple times. Find and delete redundant code.');
+      return;
+    }
+    
     if (typeof this._startupTeardown === 'function') this._startupTeardown();
     if (this._startupPermit instanceof StorePermit) this._startupPermit.destroy();
     

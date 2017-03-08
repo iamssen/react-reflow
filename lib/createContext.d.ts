@@ -1,2 +1,2 @@
-import { ContextConfig } from './store';
+import { ContextConfig } from './types';
 export declare function createContext(config: ContextConfig): any;
