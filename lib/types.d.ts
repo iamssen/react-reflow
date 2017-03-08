@@ -1,5 +1,5 @@
 import { Observable } from 'rxjs';
-import { StorePermit } from './store';
+import { StorePermit } from './permit';
 export declare type Teardown = (() => void) | void;
 export declare type Update = {
     [name: string]: any;
@@ -26,17 +26,19 @@ export declare type Provider = {
         [name: string]: any;
     };
 };
-export declare type ContextConfig = {
-    isolate?: boolean;
+export declare type StoreConfig = {
     state: {
         [name: string]: ((observe: Observe) => Observable<any>) | any;
     };
-    receiveContextProps?: (tools: Tools) => {
-        [name: string]: (prevValue, nextValue) => void;
-    };
-    handleContextProps?: (tools: Tools, getContextProps: () => any) => Teardown;
     startup?: (tools: Tools) => Teardown;
     tools?: {
         [name: string]: (permit: StorePermit) => any;
     };
+};
+export declare type ContextConfig = StoreConfig & {
+    isolate?: boolean;
+    receiveContextProps?: (tools: Tools) => {
+        [name: string]: (prevValue, nextValue) => void;
+    };
+    handleContextProps?: (tools: Tools, getContextProps: () => any) => Teardown;
 };

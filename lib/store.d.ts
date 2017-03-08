@@ -1,21 +1,6 @@
 import { Observable } from 'rxjs';
-import { Tools, ContextConfig, Observe, GetState, Dispatch } from './types';
-export declare class StorePermit {
-    private store;
-    private _destroyed;
-    private _subjects;
-    private _subscriptions;
-    constructor(store: Store);
-    readonly destroyed: boolean;
-    readonly tools: Tools;
-    hasParent: () => boolean;
-    hasState: (name: string) => boolean;
-    isPlainState: (name: string) => boolean;
-    observe: Observe;
-    getState: GetState;
-    dispatch: Dispatch;
-    destroy(): void;
-}
+import { StoreConfig } from './types';
+import { StorePermit } from './permit';
 export declare class Store {
     private config;
     private parentStore;
@@ -27,7 +12,7 @@ export declare class Store {
     readonly tools: {
         [name: string]: (permit: StorePermit) => any;
     };
-    constructor(config: ContextConfig, parentStore?: Store);
+    constructor(config: StoreConfig, parentStore?: Store);
     hasParent: () => boolean;
     hasState: (name: string) => boolean;
     isPlainState: (name: string) => boolean;
@@ -36,6 +21,6 @@ export declare class Store {
     observe: (...names: string[]) => Observable<{
         [name: string]: any;
     }>;
-    access(): StorePermit;
-    destroy(): void;
+    access: () => StorePermit;
+    destroy: () => void;
 }
