@@ -52,13 +52,11 @@ export function provide(...providers: Provider[]): (WrappedComponent: any) => an
         
         const mapState = providers
           .filter(provider => typeof provider.mapState === 'function')
-          .map(provider => provider.mapState(this.permit.observe))
-          .reverse();
+          .map(provider => provider.mapState(this.permit.observe));
         
         const mapHandler = providers
           .filter(provider => typeof provider.mapHandlers === 'function')
-          .map(provider => provider.mapHandlers(this.permit.tools))
-          .reverse();
+          .map(provider => provider.mapHandlers(this.permit.tools));
         
         this.dropHandlers = Object.assign({}, ...mapHandler);
         

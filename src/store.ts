@@ -1,6 +1,7 @@
 import {Observable, BehaviorSubject, Subject} from 'rxjs';
 import {Teardown, StoreConfig} from './types';
 import {StorePermit} from './permit';
+import {checkRestrictedPropNames} from './checkRestrictPropNames';
 
 function excludeDefaultTools(tools: Object) {
   const keys = Object.keys(tools);
@@ -38,6 +39,10 @@ export class Store {
   }
   
   constructor(private config: StoreConfig, private parentStore?: Store) {
+    checkRestrictedPropNames(config.state, (propName, restrictedPropNames) =>
+      `Do not inlcude ${propName} to "state", Restricted prop names are [${restrictedPropNames.join(', ')}]`
+    );
+    
     this._observables = new Map<string, Observable<any>>();
     this._destroyed = false;
     if (typeof config.startup === 'function') {

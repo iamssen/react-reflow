@@ -1,5 +1,4 @@
-import {Store} from '../src';
-import {StorePermit} from '../src/store';
+import {Store, StorePermit} from '../src';
 
 const createStore = () => new Store({
   state: {

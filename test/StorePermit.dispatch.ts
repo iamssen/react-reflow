@@ -1,5 +1,5 @@
-import {Store} from '../src/store';
-import {timer} from './utils/timer';
+import {Store} from '../src';
+import {timer} from './utils';
 
 const createStore = () => {
   return new Store({
@@ -258,6 +258,62 @@ describe('StorePermit.dispatch', () => {
       .then(a => {
         expect(mock).not.toHaveBeenCalled();
         expect(a).toEqual(1);
+      })
+  })
+  
+  it('Promise Update는 여러번 teardown() 되어도 안전하다', () => {
+    const store = createStore();
+    const permit = store.access();
+    const teardown = permit.dispatch(timer(50).then(() => ({a: 1000})))
+    
+    const doCancel = () => {
+      if (typeof teardown === 'function') teardown();
+      return timer(10);
+    }
+    
+    return timer(10)
+      .then(doCancel)
+      .then(doCancel)
+      .then(doCancel)
+      .then(doCancel)
+      .then(doCancel)
+      .then(doCancel)
+      .then(doCancel)
+      .then(doCancel)
+      .then(() => permit.observe('a').first().toPromise())
+      .then(({a}) => {
+        expect(a).toEqual(1);
+      })
+  })
+  
+  it('Operation은 여러번 teardown() 되어도 안전하다', () => {
+    const store = createStore();
+    const permit = store.access();
+    
+    let cancelCount: number = 0;
+    const teardown = permit.dispatch(({}) => {
+      return () => { // 한 번 이상 실행되지 않기 때문에
+        cancelCount += 1; // 1에서 더이상 증가하지 않는다
+      }
+    })
+    
+    const doCancel = () => {
+      if (typeof teardown === 'function') teardown();
+      return timer(10);
+    }
+    
+    return timer(10)
+      .then(doCancel)
+      .then(doCancel)
+      .then(doCancel)
+      .then(doCancel)
+      .then(doCancel)
+      .then(doCancel)
+      .then(doCancel)
+      .then(doCancel)
+      .then(() => permit.observe('a').first().toPromise())
+      .then(({a}) => {
+        expect(cancelCount).toEqual(1);
       })
   })
 })

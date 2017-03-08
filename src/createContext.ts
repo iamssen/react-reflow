@@ -2,15 +2,12 @@ import {Component, PropTypes, ReactElement, Children, createElement} from 'react
 import {Store} from './store';
 import {StorePermit} from './permit';
 import {ContextConfig, Dispatch, Action, Observe, Teardown, GetState} from './types';
-
-const unavailableNames: string[] = ['children', 'parentStore'];
-function findUnavailableName(obj): string {
-  return unavailableNames.find(name => obj[name] !== undefined);
-}
+import {checkRestrictedPropNames} from './checkRestrictPropNames';
 
 export function createContext(config: ContextConfig): any {
-  const name = findUnavailableName(config.state);
-  if (typeof name === 'string') throw new Error(`Do not include "${name}" to "state". unavailable names [${unavailableNames.join(', ')}]`);
+  checkRestrictedPropNames(config.state, (propName, restrictedPropNames) =>
+    `Do not inlcude ${propName} to "state", Restricted prop names are [${restrictedPropNames.join(', ')}]`
+  );
   
   const isolated: boolean = config.isolate === true;
   const toChildrenContextTypes = {'_REFLOW_CONTEXT_': PropTypes.object};
@@ -72,8 +69,9 @@ export function createContext(config: ContextConfig): any {
       
       if (typeof config.receiveContextProps === 'function') {
         this.contextProps = config.receiveContextProps(this.permit.tools);
-        const name = findUnavailableName(config.state);
-        if (typeof name === 'string') throw new Error(`Do not include "${name}" to "receiveContextProps". unavailable names [${unavailableNames.join(', ')}]`);
+        checkRestrictedPropNames(this.contextProps, (propName, restrictedPropNames) =>
+          `Do not inlcude ${propName} to "receiveContextProps", Restricted prop names are [${restrictedPropNames.join(', ')}]`
+        );
         this.receiveProps({}, this.props);
       }
     }

@@ -15,7 +15,7 @@ or
 ```
 <script src="https://unpkg.com/react-reflow/lib/reflow.js"></script>
 <script>
-  const { createContext, connect } = Reflow;
+  const { createContext, provide } = Reflow;
 </script>
 ```
 
@@ -25,17 +25,17 @@ or
   - [x] [Seed repository](https://github.com/iamssen/react-reflow-seed)
 
 - API Document
-  - [ ] createContext()
-    - [ ] :state
-    - [ ] :startup
-    - [ ] :tools
-  - [ ] provide()
-    - [ ] mapState
-    - [ ] mapHandlers
-  - [ ] tools
-    - [ ] dispatch
-    - [ ] observe
-    - [ ] create a custom tool
+  - [x] createContext()
+    - [x] :state
+    - [x] :startup
+    - [x] :tools
+  - [x] provide()
+    - [x] mapState
+    - [x] mapHandlers
+  - [x] tools
+    - [x] dispatch
+    - [x] observe
+    - [x] create a custom tool
 
 - Samples
   - [x] [Skeleton Sample](http://www.webpackbin.com/4kY1GhwwM)

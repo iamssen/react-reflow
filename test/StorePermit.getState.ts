@@ -1,4 +1,4 @@
-import {Store} from '../src/store';
+import {Store} from '../src';
 
 const createStore = () => {
   return new Store({
