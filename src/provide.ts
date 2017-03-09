@@ -60,14 +60,17 @@ export function provide(...providers: Provider[]): (WrappedComponent: any) => an
         
         this.dropHandlers = Object.assign({}, ...mapHandler);
         
-        this.subscription = mapState.length > 0
-          ? Observable.combineLatest(...mapState)
+        if (mapState.length > 0) {
+          this.subscription = Observable.combineLatest(...mapState)
             .map(states => Object.assign({}, ...states))
             .subscribe(state => {
               this.dropState = state;
               this.updateDrops(this.props);
-            })
-          : null;
+            });
+        } else {
+          this.dropState = {};
+          this.updateDrops(this.props);
+        }
       }
       
       componentWillReceiveProps(nextProps: any) {
