@@ -23,9 +23,9 @@ const rxjsExternal = {
 const config = {
   devtool: 'source-map',
   externals: {
-    react: reactExternal,
-    reactDom: reactDomExternal,
-    rxjs: rxjsExternal
+    'react': reactExternal,
+    'react-dom': reactDomExternal,
+    'rxjs': rxjsExternal,
   },
   module: {
     loaders: [
