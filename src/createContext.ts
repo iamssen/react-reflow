@@ -4,6 +4,8 @@ import {StorePermit} from './permit';
 import {ContextConfig, Dispatch, Action, Observe, Teardown, GetState} from './types';
 import {checkRestrictedPropNames} from './checkRestrictPropNames';
 
+export const mountedStores: Set<Store> = new Set<Store>();
+
 export function createContext(config: ContextConfig): any {
   checkRestrictedPropNames(config.state, (propName, restrictedPropNames) =>
     `Do not inlcude ${propName} to "state", Restricted prop names are [${restrictedPropNames.join(', ')}]`
@@ -63,6 +65,8 @@ export function createContext(config: ContextConfig): any {
       this.store = new Store(config, this.props.parentStore || this.context._REFLOW_PARENT_CONTEXT_);
       this.permit = this.store.access();
       
+      mountedStores.add(this.store);
+      
       if (typeof config.handleContextProps === 'function') {
         this.unhandleContextProps = config.handleContextProps(this.permit.tools, this.getContextProps);
       }
@@ -83,6 +87,8 @@ export function createContext(config: ContextConfig): any {
     }
     
     componentWillUnmount() {
+      if (mountedStores.has(this.store)) mountedStores.delete(this.store);
+      
       if (typeof this.unhandleContextProps === 'function') this.unhandleContextProps();
       this.unhandleContextProps = null;
       

@@ -2,6 +2,7 @@ import {Observable, BehaviorSubject, Subject} from 'rxjs';
 import {Teardown, StoreConfig} from './types';
 import {StorePermit} from './permit';
 import {checkRestrictedPropNames} from './checkRestrictPropNames';
+import {getParentStore, getConfig} from './internal';
 
 function excludeDefaultTools(tools: Object) {
   const keys = Object.keys(tools);
@@ -21,6 +22,14 @@ export class Store {
   private _destroyed: boolean;
   private _startupPermit: StorePermit;
   private _startupTeardown: Teardown;
+  
+  [getParentStore]() {
+    return this.parentStore;
+  }
+  
+  [getConfig]() {
+    return this.config;
+  }
   
   get destroyed(): boolean {
     return this._destroyed;

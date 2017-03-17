@@ -1,6 +1,6 @@
 {
   "name": "react-reflow",
-  "version": "0.6.0",
+  "version": "0.6.2",
   "description": "State container for React apps",
   "scripts": {
     "build": "rimraf lib && npm run build:declaration && npm run build:umd",
