@@ -1,72 +1,82 @@
 const webpack = require('webpack');
-const env = process.env.NODE_ENV;
+const path = require('path');
 
-const reactExternal = {
-  root: 'React',
-  commonjs2: 'react',
-  commonjs: 'react',
-  amd: 'react'
-};
-const reactDomExternal = {
-  root: 'ReactDOM',
-  commonjs2: 'react-dom',
-  commonjs: 'react-dom',
-  amd: 'react-dom'
-};
-const rxjsExternal = {
-  root: 'Rx',
-  commonjs2: 'rxjs',
-  commonjs: 'rxjs',
-  amd: 'rxjs'
-}
+const external = (root, module) => ({
+  root,
+  commonjs2: module,
+  commonjs: module,
+  amd: module,
+});
 
-const config = {
-  devtool: 'source-map',
-  externals: {
-    'react': reactExternal,
-    'react-dom': reactDomExternal,
-    'rxjs': rxjsExternal,
-  },
-  module: {
-    loaders: [
-      {
-        test: /\.(ts|tsx)$/,
-        loaders: ['ts-loader'],
-        exclude: /node_modules/
-      },
-    ]
-  },
-  resolve: {
-    root: ['./src'],
-    extensions: ['', '.ts', '.tsx']
-  },
-  output: {
-    library: 'Reflow',
-    libraryTarget: 'umd'
-  },
-  plugins: [
-    {
-      apply: compiler => {
-        compiler.parser.plugin('expression global', () => {
-          this.state.module.addVariable('global', '(function() { return this; }()) || Function(\'return this\')()');
-          return false;
-        });
-      }
+module.exports = (env) => new Promise(resolve => {
+  const reflow = {
+    devtool: 'source-map',
+    
+    entry: () => './src/index.ts',
+    
+    externals: {
+      'react': external('React', 'react'),
+      'react-dom': external('ReactDOM', 'react-dom'),
+      'rxjs': external('Rx', 'rxjs'),
     },
-    new webpack.optimize.OccurenceOrderPlugin(),
-    new webpack.DefinePlugin({
-      'process.env.NODE_ENV': JSON.stringify(env)
-    }),
-    // new webpack.optimize.UglifyJsPlugin({
-    //   compressor: {
-    //     pure_getters: true,
-    //     unsafe: true,
-    //     unsafe_comps: true,
-    //     screw_ie8: true,
-    //     warnings: false
-    //   }
-    // })
-  ]
-};
-
-module.exports = config;
+    
+    output: {
+      filename: env.minify === 'true' ? 'lib/reflow.min.js' : 'lib/reflow.js',
+      library: 'Reflow',
+      libraryTarget: 'umd'
+    },
+    
+    resolve: {
+      extensions: ['.ts', '.tsx']
+    },
+    
+    module: {
+      rules: [
+        {
+          test: /\.(ts|tsx)$/,
+          use: [
+            {loader: 'ts-loader'}
+          ],
+          include: file => {
+            return file.indexOf(path.resolve(__dirname, 'src')) === 0;
+          },
+        }
+      ],
+    },
+    
+    plugins: [
+      new webpack.optimize.OccurrenceOrderPlugin(),
+      new webpack.DefinePlugin({
+        'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV)
+      }),
+    ]
+  };
+  
+  if (env.minify === 'true') {
+    reflow.plugins.push(
+      new webpack.LoaderOptionsPlugin({
+        minimize: true,
+        debug: false
+      }),
+      new webpack.optimize.UglifyJsPlugin({
+        compress: {
+          warnings: false,
+          screw_ie8: true,
+          conditionals: true,
+          unused: true,
+          comparisons: true,
+          sequences: true,
+          dead_code: true,
+          evaluate: true,
+          if_return: true,
+          join_vars: true,
+        },
+        output: {
+          comments: false,
+        },
+      })
+    );
+  }
+  
+  resolve([reflow]);
+});

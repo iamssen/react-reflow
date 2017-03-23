@@ -1,9 +1,9 @@
+import { mount } from 'enzyme';
+import { jsdom } from 'jsdom';
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
-import {jsdom} from 'jsdom';
-import {mount} from 'enzyme';
-import {createContext, provide, ContextLinker} from '../src';
-import {timer} from './utils';
+import { ContextLinker, createContext, provide } from '../src';
+import { timer } from './utils';
 
 const createTestContext = () => {
   return createContext({
