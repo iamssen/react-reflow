@@ -69,5 +69,7 @@ function printReflowState(spacer: string = '   ') {
   })
 }
 
-window['getReflowContext'] = getReflowContext;
-window['printReflowState'] = printReflowState;
+if (window) {
+  window['getReflowContext'] = getReflowContext;
+  window['printReflowState'] = printReflowState;
+}
