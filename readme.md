@@ -19,28 +19,7 @@ or
 </script>
 ```
 
-# TODOs
+# References
 
-- Project Seed
-  - [x] [Seed repository](https://github.com/iamssen/react-reflow-seed)
-
-- API Document
-  - [x] createContext()
-    - [x] :state
-    - [x] :startup
-    - [x] :tools
-  - [x] provide()
-    - [x] mapState
-    - [x] mapHandlers
-  - [x] tools
-    - [x] dispatch
-    - [x] observe
-    - [x] create a custom tool
-
-- Samples
-  - [x] [Skeleton Sample](http://www.webpackbin.com/4kY1GhwwM)
-  - [x] [Basic Sample](http://www.webpackbin.com/Vk9P0qDwM)
-  - [ ] Dispatch Types
-  - [ ] Operation Type State
-  - [ ] Multi Context Sample
-  - [ ] Custom Tool
+- [Reflow Seed Project](https://github.com/iamssen/react-reflow-seed)
+- [한글문서](https://github.com/iamssen/react-reflow/wiki/01.-%EC%8B%9C%EC%9E%91%ED%95%98%EA%B8%B0)
